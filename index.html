@@ -301,6 +301,15 @@
       <button type="button" id="import-btn" class="secondary-btn">Import</button>
       <input type="file" id="import-file" accept="application/json" hidden />
     </div>
+
+    <!-- Paste route. On a phone, picking a file out of the Files app is
+         fiddly; pasting the text straight in is far quicker. -->
+    <details class="paste-import">
+      <summary>Paste a backup instead</summary>
+      <p class="sub">Copy the backup text and paste it here — useful on a phone, where picking files is awkward.</p>
+      <textarea id="paste-input" rows="4" placeholder="Paste backup JSON here"></textarea>
+      <button type="button" id="paste-load" class="secondary-btn wide">Load pasted backup</button>
+    </details>
     <button type="button" id="notify-btn" class="secondary-btn wide" hidden>Turn on reminders</button>
   </section>
 </main>
@@ -320,6 +329,36 @@
     <span class="tab-icon">▤</span><span>Schedule</span>
   </button>
 </nav>
+
+<!-- ============================================================
+     15-minute warning. Pinned top-left, appears when a class is
+     imminent, and shakes harder the closer it gets.
+     ============================================================ -->
+<aside class="panic" id="panic" hidden aria-live="assertive">
+  <svg class="panic-char" viewBox="0 0 60 60" aria-hidden="true">
+    <ellipse class="ch-shadow" cx="30" cy="55" rx="14" ry="3" />
+    <g class="panic-body">
+      <path class="ch-torso" d="M20 50 Q20 33 30 33 Q40 33 40 50 Z" />
+      <circle class="ch-head" cx="30" cy="22" r="10" />
+      <path class="ch-hair" d="M20 19 Q22 11 30 11 Q38 11 40 19 Q34 14 30 15 Q25 15 20 19 Z" />
+      <!-- Wide panicked eyes -->
+      <circle class="ch-eye" cx="26" cy="23" r="2" />
+      <circle class="ch-eye" cx="34" cy="23" r="2" />
+      <!-- Open mouth -->
+      <ellipse class="panic-mouth" cx="30" cy="28.5" rx="2.6" ry="3.2" />
+      <!-- Arms flung up -->
+      <path class="ch-limb panic-arm-l" d="M22 38 Q15 32 14 25" />
+      <path class="ch-limb panic-arm-r" d="M38 38 Q45 32 46 25" />
+    </g>
+  </svg>
+
+  <div class="panic-text">
+    <p class="panic-title" id="panic-title">Class soon</p>
+    <p class="panic-detail" id="panic-detail"></p>
+  </div>
+
+  <button type="button" class="panic-close" id="panic-close" aria-label="Dismiss">&times;</button>
+</aside>
 
 <!-- Slide-up sheet used when you tap an empty gap in the timeline -->
 <div class="sheet-backdrop" id="sheet-backdrop" hidden></div>

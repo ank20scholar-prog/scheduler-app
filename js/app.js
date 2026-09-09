@@ -494,7 +494,53 @@ $('#export-btn').addEventListener('click', async () => {
   }
 });
 
+/* Shared by both import routes. Returns true if the backup was applied.
+   Everything goes through sanitize(), so a pasted blob is treated with exactly
+   the same suspicion as a chosen file. */
+function applyBackupText(text) {
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    toast('That is not valid backup text');
+    return false;
+  }
+
+  const clean = sanitize(parsed);
+
+  if (!clean.classes.length && !clean.blocks.length && !clean.tasks.length) {
+    toast('No usable entries found');
+    return false;
+  }
+
+  const kept = clean.classes.length + clean.blocks.length + clean.tasks.length;
+  const found = (Array.isArray(parsed?.classes) ? parsed.classes.length : 0) +
+                (Array.isArray(parsed?.blocks) ? parsed.blocks.length : 0) +
+                (Array.isArray(parsed?.tasks) ? parsed.tasks.length : 0);
+  const dropped = Math.max(0, found - kept);
+
+  const message = dropped
+    ? `Replace everything with this backup? ${kept} entries will be restored; ${dropped} could not be read and will be skipped.`
+    : `Replace everything currently in the app with this backup? (${kept} entries)`;
+
+  if (!confirm(message)) return false;
+
+  applyState(clean);
+  save();
+  wireDayWindow();
+  refresh();
+  toast(`Restored ${kept} ${kept === 1 ? 'entry' : 'entries'}`);
+  return true;
+}
+
 $('#import-btn').addEventListener('click', () => $('#import-file').click());
+
+/* Paste route — far easier than the Files app on a phone. */
+$('#paste-load').addEventListener('click', () => {
+  const text = $('#paste-input').value.trim();
+  if (!text) { toast('Paste your backup text first'); return; }
+  if (applyBackupText(text)) $('#paste-input').value = '';
+});
 
 $('#import-file').addEventListener('change', async (e) => {
   const file = e.target.files?.[0];
@@ -506,38 +552,7 @@ $('#import-file').addEventListener('change', async (e) => {
       toast('That file is too large to be a backup');
       return;
     }
-
-    const parsed = JSON.parse(await file.text());
-
-    /* Rebuild the whole state from validated fields. Anything malformed or
-       hostile is dropped here rather than reaching the live app — see the
-       validation notes in store.js. */
-    const clean = sanitize(parsed);
-
-    if (!clean.classes.length && !clean.blocks.length && !clean.tasks.length) {
-      toast('No usable entries in that file');
-      return;
-    }
-
-    // Tell the user if the file was partly unreadable, rather than silently
-    // importing less than they expected.
-    const kept = clean.classes.length + clean.blocks.length + clean.tasks.length;
-    const found = (Array.isArray(parsed?.classes) ? parsed.classes.length : 0) +
-                  (Array.isArray(parsed?.blocks) ? parsed.blocks.length : 0) +
-                  (Array.isArray(parsed?.tasks) ? parsed.tasks.length : 0);
-    const dropped = Math.max(0, found - kept);
-
-    const message = dropped
-      ? `Replace everything with this backup? ${kept} entries will be restored; ${dropped} could not be read and will be skipped.`
-      : `Replace everything currently in the app with this backup? (${kept} entries)`;
-
-    if (!confirm(message)) return;
-
-    applyState(clean);
-    save();
-    wireDayWindow();
-    refresh();
-    toast('Backup restored');
+    applyBackupText(await file.text());
   } catch (err) {
     console.error(err);
     toast('Could not read that file');

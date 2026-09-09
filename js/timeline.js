@@ -40,8 +40,70 @@ const el = {
   ringNext:    document.getElementById('ring-next'),
   wDay:        document.getElementById('w-day'),
   wClasses:    document.getElementById('w-classes'),
-  wNext:       document.getElementById('w-next')
+  wNext:       document.getElementById('w-next'),
+
+  // 15-minute warning
+  panic:       document.getElementById('panic'),
+  panicTitle:  document.getElementById('panic-title'),
+  panicDetail: document.getElementById('panic-detail'),
+  panicClose:  document.getElementById('panic-close')
 };
+
+/* ------------------------------------------------------------
+   The 15-minute warning
+   ------------------------------------------------------------
+   Shows when a real class is 15 minutes or less away, and gets visibly more
+   frantic as the countdown runs down. It disappears on its own the moment the
+   class starts. Dismissing it hides that specific class only — the next one
+   still warns you.
+
+   Note this can only appear while the app is open. A warning that reaches you
+   with the app closed needs push notifications and a server. */
+const PANIC_WINDOW = 15;      // minutes before a class
+let dismissedPanicId = null;
+
+el.panicClose.addEventListener('click', () => {
+  dismissedPanicId = el.panic.dataset.classId || null;
+  el.panic.hidden = true;
+});
+
+function updatePanic(isoDate, mins, isToday) {
+  if (!isToday) { el.panic.hidden = true; return; }
+
+  // Nearest real class that has not started yet. Generated sleep and
+  // get-ready blocks are not something to panic about.
+  const upcoming = scheduledEntriesForDate(isoDate)
+    .filter((e) => e.kind === 'class' && toMinutes(e.start) > mins)
+    .sort((a, b) => toMinutes(a.start) - toMinutes(b.start))[0];
+
+  if (!upcoming) { el.panic.hidden = true; return; }
+
+  const minutesAway = toMinutes(upcoming.start) - mins;
+
+  if (minutesAway > PANIC_WINDOW) {
+    // Out of range — clear any old dismissal so the next class warns properly.
+    if (dismissedPanicId && dismissedPanicId !== upcoming.id) dismissedPanicId = null;
+    el.panic.hidden = true;
+    return;
+  }
+
+  if (dismissedPanicId === upcoming.id) { el.panic.hidden = true; return; }
+
+  // 0 at fifteen minutes out, 1 at the moment it starts. Drives how hard the
+  // little figure shakes.
+  const intensity = Math.min(1, Math.max(0, (PANIC_WINDOW - minutesAway) / PANIC_WINDOW));
+
+  el.panic.dataset.classId = upcoming.id;
+  el.panic.style.setProperty('--panic', intensity.toFixed(2));
+  el.panic.classList.toggle('is-urgent', minutesAway <= 5);
+  el.panicTitle.textContent = upcoming.title;
+
+  const rounded = Math.max(1, Math.ceil(minutesAway));
+  el.panicDetail.textContent =
+    `Starts in ${rounded} min` + (upcoming.location ? ` · ${upcoming.location}` : '');
+
+  el.panic.hidden = false;
+}
 
 // The rings have a circumference of ~100, so the dash offset is 100 - percent.
 function setRing(circle, percent) {
@@ -218,6 +280,7 @@ export function tick(isoDate) {
   updateStage(isoDate, mins, isToday);
   markCurrentBlock(isoDate, mins, isToday);
   updateWidgets(isoDate, mins, isToday);
+  updatePanic(isoDate, mins, isToday);
 }
 
 /* The three dials under the character.

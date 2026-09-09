@@ -78,6 +78,11 @@
      ============================================================ -->
 <main id="view-today" class="view">
 
+  <!-- Wrapper so the stage and dials can become a single sticky sidebar on a
+       wide screen. On phones it is `display: contents`, meaning it has no
+       layout effect at all and the mobile design is untouched. -->
+  <div class="today-side">
+
   <!-- The "stage": a little scene that reacts to what you're doing now. -->
   <section class="stage" id="stage">
     <svg class="character" id="character" viewBox="0 0 140 120" aria-hidden="true">
@@ -175,6 +180,8 @@
       <span class="widget-label">Next</span>
     </div>
   </section>
+
+  </div><!-- /.today-side -->
 
   <!-- Shown only when there is nothing at all in the app yet, so a new or
        empty install explains itself instead of looking broken. -->

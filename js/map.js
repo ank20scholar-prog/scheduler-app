@@ -69,21 +69,16 @@ export function showMap(isoDate) {
       attributionControl: false
     });
 
-    /* CARTO's minimal basemaps rather than standard OSM tiles. Standard OSM is
-       busy and saturated; it needed a heavy CSS filter to sit alongside this
-       app's palette, and the filter looked like a filter. Positron is already
-       a quiet warm grey, and Dark Matter is a proper dark style rather than an
-       inverted light one. */
-    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    tiles = L.tileLayer(
-      `https://{s}.basemaps.cartocdn.com/${dark ? 'dark_all' : 'light_all'}/{z}/{x}/{y}{r}.png`,
-      { maxZoom: 20, subdomains: 'abcd', attribution: '&copy; OpenStreetMap, &copy; CARTO' }
-    ).addTo(map);
-
-    // Follow the system theme if it changes while the app is open.
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-      tiles.setUrl(`https://{s}.basemaps.cartocdn.com/${e.matches ? 'dark_all' : 'light_all'}/{z}/{x}/{y}{r}.png`);
-    });
+    /* Standard OpenStreetMap tiles.
+       I tried CARTO's Positron basemap first because it is a much quieter
+       style out of the box — but their tile servers now return
+       "API KEY REQUIRED" watermarks, so it is not usable without an account.
+       OSM's own tiles need no key and will not stop working, so the styling is
+       done here instead, with a filter tuned in css/styles.css. */
+    tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
 
     layers = L.layerGroup().addTo(map);
     bindWalkerToMap();   // must happen after the map exists

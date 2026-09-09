@@ -972,14 +972,23 @@ input::placeholder { color: var(--text-faint); }
   z-index: 0;
 }
 
-/* No filter on the tiles any more. The basemap is CARTO Positron / Dark
-   Matter, which is already a quiet neutral style — the heavy sepia filter this
-   replaced was compensating for standard OSM tiles being busy and saturated,
-   and it looked like a filter. A very slight warm tint is all that is needed
-   to sit it alongside the cream palette. */
-.leaflet-tile-pane { filter: sepia(.10) saturate(.95); }
+/* Standard OSM tiles are busy and saturated, so they are muted toward the
+   app's warm neutral ground here. This filter is doing the job a purpose-built
+   basemap would do — CARTO's Positron would have been better, but their tiles
+   now require an API key.
+
+   The values matter: heavy desaturation plus a lift in brightness flattens the
+   road colours, a little sepia warms the greys toward the cream palette, and
+   reduced contrast stops labels fighting the pins drawn on top. */
+.leaflet-tile-pane {
+  filter: saturate(.42) brightness(1.07) sepia(.14) contrast(.92);
+}
 @media (prefers-color-scheme: dark) {
-  .leaflet-tile-pane { filter: none; }
+  /* Inverting a light basemap is a compromise, but it keeps labels legible and
+     avoids a second tile source. Hue-rotate puts blues back after the invert. */
+  .leaflet-tile-pane {
+    filter: invert(.92) hue-rotate(180deg) saturate(.35) brightness(.92) contrast(.95);
+  }
 }
 
 .leaflet-container { font-family: var(--font-sans); background: var(--surface-2); }

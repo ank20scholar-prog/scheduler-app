@@ -1,0 +1,45 @@
+# Keeps data/dining.json current.
+#
+# Opening hours change, so they must not be baked into the app by hand. This
+# runs on a schedule, re-queries OpenStreetMap, and commits the result if it
+# actually changed.
+#
+# It touches nothing personal: the query is public map data about public
+# places, and the workflow never sees any user information.
+
+name: Refresh dining data
+
+on:
+  schedule:
+    # 07:00 UTC daily — roughly 3am US Eastern, so it lands before the day starts.
+    - cron: '0 7 * * *'
+  # Lets you trigger it by hand from the Actions tab.
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Query OpenStreetMap
+        run: python tools/fetch-dining.py
+
+      - name: Commit if anything changed
+        run: |
+          if git diff --quiet -- data/dining.json; then
+            echo "No change — dining data is already current."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/dining.json
+          git commit -m "Refresh dining data from OpenStreetMap"
+          git push

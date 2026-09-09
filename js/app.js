@@ -13,6 +13,7 @@ import {
 import { renderDay, tick } from './timeline.js';
 import { renderTasks } from './tasks.js';
 import { rankTasks } from './priority.js';
+import { showMap, refreshMap, initMapModule } from './map.js';
 
 // ------------------------------------------------------------
 // Transient UI state (not saved — it resets when the app restarts)
@@ -36,6 +37,7 @@ function refresh() {
   renderTasks(toggleTask, deleteTask, justChangedTask);
   renderClassList();
   renderSleepSummary();
+  refreshMap();
   scheduleReminders();
 
   // An app with no data at all should say so, rather than showing an empty
@@ -69,9 +71,10 @@ document.querySelectorAll('.tab').forEach((tab) => {
     document.querySelectorAll('.tab').forEach((t) => t.classList.remove('is-active'));
     tab.classList.add('is-active');
 
-    for (const view of ['today', 'tasks', 'schedule']) {
+    for (const view of ['today', 'tasks', 'map', 'schedule']) {
       $(`#view-${view}`).hidden = view !== tab.dataset.view;
     }
+    if (tab.dataset.view === 'map') showMap(selectedDate);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 });
@@ -712,6 +715,7 @@ async function init() {
   wireDayWindow();
   wireAutoSleep();
   wireNotifications();
+  initMapModule();
 
   // Default the task form to today, an hour from now, rounded.
   const soon = new Date();

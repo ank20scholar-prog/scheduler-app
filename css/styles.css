@@ -955,3 +955,177 @@ input::placeholder { color: var(--text-faint); }
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
+
+/* ============================================================
+   Map tab
+   ============================================================ */
+.map-shell { position: relative; margin: 14px 16px; }
+
+.map {
+  height: 46vh;
+  min-height: 300px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  /* Leaflet's default is a cold grey; keep the warm ground while tiles load. */
+  background: var(--surface-2);
+  z-index: 0;
+}
+
+/* Tone the tiles toward the app's warm neutral palette so the map does not
+   look like a different product bolted on. */
+.leaflet-tile-pane { filter: saturate(.72) sepia(.16) brightness(1.02); }
+@media (prefers-color-scheme: dark) {
+  .leaflet-tile-pane { filter: invert(.9) hue-rotate(180deg) saturate(.5) brightness(.95); }
+}
+
+.leaflet-container { font-family: var(--font-sans); background: var(--surface-2); }
+.leaflet-popup-content-wrapper {
+  background: var(--bg-elev); color: var(--text);
+  border-radius: var(--radius-sm); box-shadow: var(--shadow);
+  font-size: .82rem;
+}
+.leaflet-popup-tip { background: var(--bg-elev); }
+.leaflet-bar a {
+  background: var(--bg-elev); color: var(--text); border-bottom-color: var(--border);
+}
+.leaflet-bar a:hover { background: var(--surface-2); }
+
+/* ---------- Pins ---------- */
+.stop-pin {
+  display: flex; align-items: center; justify-content: center;
+  width: 46px; height: 46px;
+}
+.stop-pin .stop-code {
+  display: flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--bg-elev);
+  border: 2px solid var(--accent);
+  color: var(--accent);
+  font-size: .66rem; font-weight: 700; letter-spacing: .02em;
+  box-shadow: var(--shadow);
+}
+.stop-pin.is-done .stop-code { opacity: .5; border-color: var(--text-faint); color: var(--text-faint); }
+
+/* The building you need next is the one thing that should catch the eye. */
+.stop-pin.is-next .stop-code {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  transform: scale(1.16);
+}
+.stop-pin.is-next { animation: stopPulse 2.2s ease-in-out infinite; }
+@keyframes stopPulse {
+  0%, 100% { filter: drop-shadow(0 0 0 color-mix(in srgb, var(--accent) 55%, transparent)); }
+  50%      { filter: drop-shadow(0 0 10px color-mix(in srgb, var(--accent) 65%, transparent)); }
+}
+
+.you-pin span {
+  display: block; width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--hi);
+  border: 3px solid var(--bg-elev);
+  box-shadow: 0 0 0 1px var(--hi);
+  animation: youPing 2.4s ease-out infinite;
+}
+@keyframes youPing {
+  0%   { box-shadow: 0 0 0 1px var(--hi), 0 0 0 0 color-mix(in srgb, var(--hi) 45%, transparent); }
+  70%  { box-shadow: 0 0 0 1px var(--hi), 0 0 0 14px transparent; }
+  100% { box-shadow: 0 0 0 1px var(--hi), 0 0 0 0 transparent; }
+}
+
+.food-pin span {
+  display: block; width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--low);
+  border: 3px solid var(--bg-elev);
+  box-shadow: var(--shadow);
+}
+
+.route-line { stroke: var(--accent); }
+
+/* ---------- The walking guide ---------- */
+.walker {
+  position: absolute; top: 0; left: 0;
+  width: 40px; height: 46px;
+  pointer-events: none;
+  z-index: 500;
+  transition: transform .5s var(--ease);
+}
+.walker svg { width: 100%; height: 100%; }
+.walker-body { animation: walkBob .62s ease-in-out infinite alternate; transform-origin: 20px 43px; }
+@keyframes walkBob {
+  from { transform: translateY(0) rotate(-1.5deg); }
+  to   { transform: translateY(-2px) rotate(1.5deg); }
+}
+.walker-leg-a { animation: stride .62s ease-in-out infinite alternate; transform-origin: 18px 34px; }
+.walker-leg-b { animation: stride .62s ease-in-out infinite alternate-reverse; transform-origin: 22px 34px; }
+@keyframes stride {
+  from { transform: rotate(-20deg); }
+  to   { transform: rotate(20deg); }
+}
+.walker .ch-limb { stroke-width: 4; }
+
+/* ---------- Next stop card ---------- */
+.next-stop { border-left: 4px solid var(--accent); }
+
+/* ---------- Route list ---------- */
+.route-list { list-style: none; margin: 0; padding: 0; }
+.route-item {
+  display: grid;
+  grid-template-columns: 68px 1fr auto;
+  gap: 10px; align-items: baseline;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border-soft);
+}
+.route-item:last-child { border-bottom: none; }
+.route-time {
+  font-size: .76rem; font-weight: 600; color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.route-name { font-size: .88rem; font-weight: 600; }
+.route-where { font-size: .74rem; color: var(--text-dim); }
+.route-leg { font-size: .7rem; color: var(--text-faint); white-space: nowrap; }
+.route-item.is-done { opacity: .55; }
+.route-item.is-next .route-name { color: var(--accent); }
+
+/* ---------- Food ---------- */
+.food-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.food-head .card-title { margin-bottom: 0; }
+.food-head .secondary-btn { padding: 8px 14px; flex-shrink: 0; }
+
+.food-list { list-style: none; margin: 10px 0 0; padding: 0; }
+.food-item {
+  padding: 10px; margin-bottom: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: transform .16s var(--ease), border-color .16s var(--ease);
+}
+.food-item:active { transform: scale(.99); border-color: var(--accent); }
+.food-name { font-size: .88rem; font-weight: 600; }
+.food-meta {
+  display: flex; gap: 10px; flex-wrap: wrap;
+  font-size: .74rem; color: var(--text-dim); margin-top: 2px;
+}
+.food-open    { color: var(--low); font-weight: 600; }
+.food-shut    { color: var(--hi); font-weight: 600; }
+.food-unknown { color: var(--text-faint); font-weight: 600; }
+
+.map-credit { padding: 0 16px 20px; font-size: .7rem; }
+
+@media (min-width: 900px) {
+  #view-map {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: 0 24px;
+    align-items: start;
+    padding: 16px 20px 0;
+  }
+  .map-shell { grid-row: 1 / span 4; margin: 0; }
+  .map { height: calc(100vh - 260px); min-height: 420px; }
+  #view-map .card { margin: 0 0 16px; }
+  .map-credit { grid-column: 2; padding: 0; }
+}

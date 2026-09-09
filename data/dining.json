@@ -1,0 +1,793 @@
+{
+ "source": "OpenStreetMap contributors, ODbL",
+ "centre": {
+  "lat": 38.9875,
+  "lon": -76.943
+ },
+ "radius_m": 1400,
+ "places": [
+  {
+   "name": "&pizza",
+   "kind": "fast_food",
+   "lat": 38.979934,
+   "lon": -76.938172,
+   "hours": null,
+   "cuisine": "pizza",
+   "indoor": false
+  },
+  {
+   "name": "251 North",
+   "kind": "restaurant",
+   "lat": 38.992496,
+   "lon": -76.949579,
+   "hours": "Mo-Su 08:00-20:00",
+   "cuisine": null,
+   "indoor": false
+  },
+  {
+   "name": "Applause cafe",
+   "kind": "cafe",
+   "lat": 38.990761,
+   "lon": -76.950754,
+   "hours": null,
+   "cuisine": "coffee_shop",
+   "indoor": false
+  },
+  {
+   "name": "Aroy Thai Restaurant",
+   "kind": "restaurant",
+   "lat": 38.981841,
+   "lon": -76.93709,
+   "hours": "Mo-Fr 11:30-22:00; Sa 12:00-22:00; Su 16:30-22:00",
+   "cuisine": "thai",
+   "indoor": false
+  },
+  {
+   "name": "Bagels 'n Grinds",
+   "kind": "restaurant",
+   "lat": 38.986949,
+   "lon": -76.935872,
+   "hours": "Mo-Su 07:00-14:00",
+   "cuisine": "bagel",
+   "indoor": false
+  },
+  {
+   "name": "Blaze Pizza",
+   "kind": "restaurant",
+   "lat": 38.981783,
+   "lon": -76.937578,
+   "hours": null,
+   "cuisine": "pizza",
+   "indoor": false
+  },
+  {
+   "name": "BRBean cafe",
+   "kind": "cafe",
+   "lat": 38.988845,
+   "lon": -76.942776,
+   "hours": null,
+   "cuisine": "coffee_shop",
+   "indoor": false
+  },
+  {
+   "name": "Breakpoint Cafe",
+   "kind": "cafe",
+   "lat": 38.989208,
+   "lon": -76.936355,
+   "hours": null,
+   "cuisine": null,
+   "indoor": false
+  },
+  {
+   "name": "Casey's Coffee",
+   "kind": "cafe",
+   "lat": 38.984582,
+   "lon": -76.949293,
+   "hours": null,
+   "cuisine": null,
+   "indoor": false
+  },
+  {
+   "name": "CAVA",
+   "kind": "restaurant",
+   "lat": 38.980724,
+   "lon": -76.939017,
+   "hours": "Mo-Su 10:45-22:00",
+   "cuisine": "mediterranean",
+   "indoor": false
+  },
+  {
+   "name": "Chick-fil-A",
+   "kind": "fast_food",
+   "lat": 38.988208,
+   "lon": -76.944765,
+   "hours": "Mo-Fr 08:30-20:30; Sa 09:00-20:30; Su off",
+   "cuisine": "chicken",
+   "indoor": false
+  },
+  {
+   "name": "Chicken La Rock",
+   "kind": "restaurant",
+   "lat": 38.979815,
+   "lon": -76.93773,
+   "hours": "We-Sa 11:00-20:00; Su 11:00-19:00",
+   "cuisine": null,
+   "indoor": false
+  },
+  {
+   "name": "Chipotle",
+   "kind": "fast_food",
+   "lat": 38.980471,
+   "lon": -76.938951,
+   "hours": "Mo-Su 10:45-22:00",
+   "cuisine": "mexican",
+   "indoor": false
+  },
+  {
+   "name": "Class 520",
+   "kind": "ice_cream",
+   "lat": 38.984525,
+   "lon": -76.949614,
+   "hours": "Mo-Su 13:00-21:00",
+   "cuisine": null,
+   "indoor": false
+  },
+  {
+   "name": "Cluckster's",
+   "kind": "restaurant",
+   "lat": 38.981527,
+   "lon": -76.937553,
+   "hours": null,
+   "cuisine": null,
+   "indoor": false
+  },
+  {
+   "name": "Cold Stone Creamery",
+   "kind": "ice_cream",
+   "lat": 38.980012,
+   "lon": -76.938697,
+   "hours": "Su-Th 12:00-20:00; Fr,Sa 12:00-23:00",
+   "cuisine": "ice_cream",
+   "indoor": false
+  },
+  {
+   "name": "College Park Grill",
+   "kind": "restaurant",
+   "lat": 38.993216,
+   "lon": -76.932604,
+   "hours": "Su-Th 07:00-22:00, Fr-Sa 07:00-23:00",
+   "cuisine": null,
+   "indoor": false
+  },
+  {
+   "name": "Cornerstone Grill & Loft",
+   "kind": "bar",
+   "lat": 38.980661,
+   "lon": -76.937532,
+   "hours": null,
+   "cuisine": null,
+   "indoor": false
+  },
+  {
+   "name": "Creative Commons cafe",
+   "kind": "cafe",
+   "lat": 38.985874,
+   "lon": -76.948545,
+   "hours": null,
+   "cuisine": "coffee_shop",
+   "indoor": false
+  },
+  {
+   "name": "Denny's",
+   "kind": "restaurant",
+   "lat": 38.994023,
+   "lon": -76.933049,
+   "hours": null,
+   "cuisine": "american",
+   "indoor": false
+  },
+  {
+   "name": "Domino's",
+   "kind": "fast_food",
+   "lat": 38.979973,
+   "lon": -76.938512,
+   "hours": "Su-Th 10:00-02:00, Fr,Sa 10:00-03:00",
+   "cuisine": "pizza",
+   "indoor": false
+  },
+  {
+   "name": "Dunkin'",
+   "kind": "fast_food",
+   "lat": 38.980927,
+   "lon": -76.942247,
+   "hours": "07:00-19:00",
+   "cuisine": "donut;coffee_shop",
+   "indoor": false
+  },
+  {
+   "name": "E+M Cafe",
+   "kind": "cafe",
+   "lat": 38.988881,
+   "lon": -76.938922,
+   "hours": null,
+   "cuisine": null,
+   "indoor": false
+  },
+  {
+   "name": "Eastern Gourmet",
+   "kind": "restaurant",
+   "lat": 38.991186,
+   "lon": -76.934042,
+   "hours": null,
+   "cuisine": "chinese",
+   "indoor": false
+  },
+  {
+   "name": "Five Guys",
+   "kind": "fast_food",
+   "lat": 38.980642,
+   "lon": -76.939012,
+   "hours": "Mo-Su 11:00-22:00",
+   "cuisine": "burger",
+   "indoor": false
+  },
+  {
+   "name": "Footnotes Cafe",
+   "kind": "cafe",
+   "lat": 38.986076,
+   "lon": -76.944798,
+   "hours": null,
+   "cuisine": "coffee_shop",
+   "indoor": false
+  },
+  {
+   "name": "GrillMarx",
+   "kind": "restaurant",
+   "lat": 38.987366,
+   "lon": -76.935586,
+   "hours": "Mo-Th 11:00-22:00; Fr 11:00-23:00; Sa 10:00-23:00; Su 10:00-21:00",
+   "cuisine": "american",
+   "indoor": false
+  },
+  {
+   "name": "Hibachi San",
+   "kind": "fast_food",
+   "lat": 38.988176,
+   "lon": -76.944765,
+   "hours": null,
+   "cuisine": "poke",
+   "indoor": false
+  },
+  {
+   "name": "Honey Pig BBQ",
+   "kind": "restaurant",
+   "lat": 38.980337,
+   "lon": -76.938946,
+   "hours": null,
+   "cuisine": "korean",
+   "indoor": false
+  },
+  {
+   "name": "Insomnia Cookies",
+   "kind": "restaurant",
+   "lat": 38.981825,
+   "lon": -76.937011,
+   "hours": null,
+   "cuisine": "cookie",
+   "indoor": false
+  },
+  {
+   "name": "Ivy Noodles",
+   "kind": "restaurant",
+   "lat": 38.980068,
+   "lon": -76.937708,
+   "hours": "We-Sa 11:00-20:30; Su 11:30-20:30",
+   "cuisine": "chinese",
+   "indoor": false
+  },
+  {
+   "name": "Jumbo Jumbo Cafe",
+   "kind": "fast_food",
+   "lat": 38.984562,
+   "lon": -76.949435,
+   "hours": "10:30 - 22:00",
+   "cuisine": "taiwanese;bubble_tea",
+   "indoor": false
+  },
+  {
+   "name": "Kim Kafe",
+   "kind": "cafe",
+   "lat": 38.990953,
+   "lon": -76.938048,
+   "hours": null,
+   "cuisine": "coffee_shop",
+   "indoor": false
+  },
+  {
+   "name": "Kung Fu Tea",
+   "kind": "cafe",
+   "lat": 38.98014,
+   "lon": -76.937696,
+   "hours": "Mo-Su 12:00-21:00",
+   "cuisine": "bubble_tea",
+   "indoor": false
+  },
+  {
+   "name": "Ledo Restaurant",
+   "kind": "restaurant",
+   "lat": 38.980562,
+   "lon": -76.936929,
+   "hours": null,
+   "cuisine": "pizza;italian",
+   "indoor": false
+  },
+  {
+   "name": "Little Blue Menu - Chick-fil-A",
+   "kind": "fast_food",
+   "lat": 38.97906,
+   "lon": -76.9383,
+   "hours": null,
+   "cuisine": null,
+   "indoor": false
+  },
+  {
+   "name": "Looney's Pub",
+   "kind": "pub",
+   "lat": 38.990868,
+   "lon": -76.934554,
+   "hours": null,
+   "cuisine": null,
+   "indoor": false
+  },
+  {
+   "name": "Marathon Deli",
+   "kind": "restaurant",
+   "lat": 38.98133,
+   "lon": -76.938133,
+   "hours": null,
+   "cuisine": null,
+   "indoor": false
+  },
+  {
+   "name": "Maryland Dairy",
+   "kind": "ice_cream",
+   "lat": 38.988429,
+   "lon": -76.944646,
+   "hours": null,
+   "cuisine": null,
+   "indoor": false
+  },
+  {
+   "name": "Maryland Tandoor",
+   "kind": "restaurant",
+   "lat": 38.991278,
+   "lon": -76.933999,
+   "hours": null,
+   "cuisine": "indian",
+   "indoor": false
+  },
+  {
+   "name": "McDonald's",
+   "kind": "fast_food",
+   "lat": 38.988244,
+   "lon": -76.944533,
+   "hours": null,
+   "cuisine": "burger",
+   "indoor": false
+  },
+  {
+   "name": "Moby Dick",
+   "kind": "fast_food",
+   "lat": 38.988147,
+   "lon": -76.944527,
+   "hours": null,
+   "cuisine": null,
+   "indoor": false
+  },
+  {
+   "name": "M\u00f6ge Tee",
+   "kind": "cafe",
+   "lat": 38.991119,
+   "lon": -76.934081,
+   "hours": null,
+   "cuisine": "tea",
+   "indoor": false
+  },
+  {
+   "name": "Noodles & Company",
+   "kind": "restaurant",
+   "lat": 38.980126,
+   "lon": -76.938982,
+   "hours": "Mo-Th,Su 10:30-22:00; Fr-Sa 10:30-23:00",
+   "cuisine": "pasta",
+   "indoor": false
+  },
+  {
+   "name": "Northwest Chinese",
+   "kind": "restaurant",
+   "lat": 38.979934,
+   "lon": -76.937695,
+   "hours": "We-Su 11:30-15:00,17:00-20:30",
+   "cuisine": "chinese",
+   "indoor": false
+  },
+  {
+   "name": "NuVegan Cafe",
+   "kind": "restaurant",
+   "lat": 38.991423,
+   "lon": -76.933944,
+   "hours": null,
+   "cuisine": null,
+   "indoor": false
+  },
+  {
+   "name": "Off the Record",
+   "kind": "cafe",
+   "lat": 38.986977,
+   "lon": -76.948345,
+   "hours": null,
+   "cuisine": "coffee_shop",
+   "indoor": false
+  },
+  {
+   "name": "Paisano's Pizza",
+   "kind": "restaurant",
+   "lat": 38.977826,
+   "lon": -76.937647,
+   "hours": "Su-Th 11:00-22:00; Fr,Sa 11:00-23:00",
+   "cuisine": "pizza",
+   "indoor": false
+  },
+  {
+   "name": "Panda Express",
+   "kind": "fast_food",
+   "lat": 38.980012,
+   "lon": -76.938831,
+   "hours": "Mo-Th 10:30-22:30; Fr 10:00-23:30; Sa 10:30-23:30; Su 10:30-22:00",
+   "cuisine": "chinese",
+   "indoor": false
+  },
+  {
+   "name": "Papa John's",
+   "kind": "fast_food",
+   "lat": 38.98187,
+   "lon": -76.937217,
+   "hours": null,
+   "cuisine": "pizza",
+   "indoor": false
+  },
+  {
+   "name": "Peter Chang Kitchen & Bar",
+   "kind": "restaurant",
+   "lat": 38.994876,
+   "lon": -76.931781,
+   "hours": null,
+   "cuisine": "chinese",
+   "indoor": false
+  },
+  {
+   "name": "Pho Tom",
+   "kind": "restaurant",
+   "lat": 38.980011,
+   "lon": -76.937695,
+   "hours": "We-Mo 11:00-21:00",
+   "cuisine": "noodle",
+   "indoor": false
+  },
+  {
+   "name": "Physics cafe",
+   "kind": "cafe",
+   "lat": 38.988427,
+   "lon": -76.940215,
+   "hours": null,
+   "cuisine": "coffee_shop",
+   "indoor": false
+  },
+  {
+   "name": "Pizza Kingdom",
+   "kind": "restaurant",
+   "lat": 38.981718,
+   "lon": -76.938323,
+   "hours": null,
+   "cuisine": "pizza",
+   "indoor": false
+  },
+  {
+   "name": "Playa Bowls",
+   "kind": "fast_food",
+   "lat": 38.981873,
+   "lon": -76.937289,
+   "hours": "08:00-21:00",
+   "cuisine": "a\u00e7a\u00ed",
+   "indoor": false
+  },
+  {
+   "name": "Popeyes",
+   "kind": "fast_food",
+   "lat": 38.98149,
+   "lon": -76.93741,
+   "hours": "10:00-24:00",
+   "cuisine": "chicken",
+   "indoor": false
+  },
+  {
+   "name": "Potbelly",
+   "kind": "fast_food",
+   "lat": 38.981734,
+   "lon": -76.938122,
+   "hours": "Su-Th 11:00-21:00; Fr,Sa 11:00-22:00",
+   "cuisine": "sandwich",
+   "indoor": false
+  },
+  {
+   "name": "Potomac Pizza",
+   "kind": "restaurant",
+   "lat": 38.987493,
+   "lon": -76.935499,
+   "hours": "Su-Th 11:00-23:00; Fr,Sa 11:00-22:00",
+   "cuisine": "pizza",
+   "indoor": false
+  },
+  {
+   "name": "QU Japan",
+   "kind": "restaurant",
+   "lat": 38.981141,
+   "lon": -76.938103,
+   "hours": "Mo-Sa 11:00-21:30; Su 12:00-21:30",
+   "cuisine": "hibachi",
+   "indoor": false
+  },
+  {
+   "name": "Quantum cafe",
+   "kind": "cafe",
+   "lat": 38.990886,
+   "lon": -76.94144,
+   "hours": null,
+   "cuisine": null,
+   "indoor": true
+  },
+  {
+   "name": "R.J. Bentley's",
+   "kind": "bar",
+   "lat": 38.980508,
+   "lon": -76.937551,
+   "hours": null,
+   "cuisine": null,
+   "indoor": false
+  },
+  {
+   "name": "Raising Cane's",
+   "kind": "fast_food",
+   "lat": 38.981022,
+   "lon": -76.938164,
+   "hours": null,
+   "cuisine": "chicken",
+   "indoor": false
+  },
+  {
+   "name": "Ritchie's Colombian Restaurant",
+   "kind": "restaurant",
+   "lat": 38.9801,
+   "lon": -76.937704,
+   "hours": "We-Su 11:30-21:00",
+   "cuisine": "colombian",
+   "indoor": false
+  },
+  {
+   "name": "Rudy's Cafe",
+   "kind": "cafe",
+   "lat": 38.982853,
+   "lon": -76.947655,
+   "hours": null,
+   "cuisine": "coffee_shop",
+   "indoor": false
+  },
+  {
+   "name": "Saladworks",
+   "kind": "fast_food",
+   "lat": 38.988195,
+   "lon": -76.94453,
+   "hours": null,
+   "cuisine": "salad",
+   "indoor": false
+  },
+  {
+   "name": "Sbarro",
+   "kind": "fast_food",
+   "lat": 38.98811,
+   "lon": -76.944526,
+   "hours": null,
+   "cuisine": "pizza",
+   "indoor": false
+  },
+  {
+   "name": "Seoul Spice",
+   "kind": "restaurant",
+   "lat": 38.980421,
+   "lon": -76.942568,
+   "hours": null,
+   "cuisine": "korean",
+   "indoor": false
+  },
+  {
+   "name": "Shake Shack",
+   "kind": "fast_food",
+   "lat": 38.981065,
+   "lon": -76.938767,
+   "hours": null,
+   "cuisine": "burger",
+   "indoor": false
+  },
+  {
+   "name": "Shanghai Tokyo Cafe",
+   "kind": "restaurant",
+   "lat": 38.992562,
+   "lon": -76.933484,
+   "hours": null,
+   "cuisine": "asian",
+   "indoor": false
+  },
+  {
+   "name": "Sneaker's cafe",
+   "kind": "cafe",
+   "lat": 38.993596,
+   "lon": -76.945104,
+   "hours": "Tu-Fr 10:30-22:30; Mo 10:00-22:00; Sa 10:30-21:00; Su 12:00-21:00",
+   "cuisine": "smoothie",
+   "indoor": false
+  },
+  {
+   "name": "South Campus Dining Hall",
+   "kind": "restaurant",
+   "lat": 38.983048,
+   "lon": -76.943684,
+   "hours": null,
+   "cuisine": null,
+   "indoor": false
+  },
+  {
+   "name": "Stadium Dr at #4136 Yahentamitsi Dining Hall",
+   "kind": "dining_hall",
+   "lat": 38.990677,
+   "lon": -76.945183,
+   "hours": null,
+   "cuisine": null,
+   "indoor": false
+  },
+  {
+   "name": "Starbucks",
+   "kind": "cafe",
+   "lat": 38.980536,
+   "lon": -76.938964,
+   "hours": "Mo-Fr 06:00-21:00; Sa,Su 07:00-21:00",
+   "cuisine": "coffee_shop",
+   "indoor": false
+  },
+  {
+   "name": "Subway",
+   "kind": "fast_food",
+   "lat": 38.98457,
+   "lon": -76.949353,
+   "hours": null,
+   "cuisine": "sandwich",
+   "indoor": false
+  },
+  {
+   "name": "Sweetgreen",
+   "kind": "fast_food",
+   "lat": 38.992271,
+   "lon": -76.933584,
+   "hours": "10:30-22:00",
+   "cuisine": "salad",
+   "indoor": false
+  },
+  {
+   "name": "Taco Bell",
+   "kind": "fast_food",
+   "lat": 38.988723,
+   "lon": -76.938956,
+   "hours": null,
+   "cuisine": "tex-mex",
+   "indoor": false
+  },
+  {
+   "name": "Terrapin's Turf",
+   "kind": "bar",
+   "lat": 38.981196,
+   "lon": -76.938401,
+   "hours": null,
+   "cuisine": null,
+   "indoor": false
+  },
+  {
+   "name": "The Board and Brew - a board game cafe",
+   "kind": "cafe",
+   "lat": 38.991571,
+   "lon": -76.933875,
+   "hours": null,
+   "cuisine": null,
+   "indoor": false
+  },
+  {
+   "name": "The Coffee Bar",
+   "kind": "cafe",
+   "lat": 38.987805,
+   "lon": -76.944649,
+   "hours": null,
+   "cuisine": "coffee",
+   "indoor": false
+  },
+  {
+   "name": "The Common",
+   "kind": "restaurant",
+   "lat": 38.985989,
+   "lon": -76.954479,
+   "hours": null,
+   "cuisine": null,
+   "indoor": false
+  },
+  {
+   "name": "The Diner",
+   "kind": "restaurant",
+   "lat": 38.992476,
+   "lon": -76.946613,
+   "hours": "Mo-Fr 07:00-21:00; Sa,Su 10:00-21:00",
+   "cuisine": null,
+   "indoor": false
+  },
+  {
+   "name": "The Hall CP",
+   "kind": "restaurant",
+   "lat": 38.986095,
+   "lon": -76.933766,
+   "hours": "Mo-Th 16:00-21:00; Fr 11:00-22:00; Sa 10:00-22:00; Su 10:00-21:00",
+   "cuisine": null,
+   "indoor": false
+  },
+  {
+   "name": "The Jerk Hut",
+   "kind": "restaurant",
+   "lat": 38.979702,
+   "lon": -76.937704,
+   "hours": null,
+   "cuisine": null,
+   "indoor": false
+  },
+  {
+   "name": "The Lobby Bar",
+   "kind": "bar",
+   "lat": 38.987122,
+   "lon": -76.935343,
+   "hours": "Mo-Su 14:00-20:00",
+   "cuisine": null,
+   "indoor": false
+  },
+  {
+   "name": "Vigilante Coffee",
+   "kind": "cafe",
+   "lat": 38.992077,
+   "lon": -76.933881,
+   "hours": "Mo-Su 07:00-19:00",
+   "cuisine": "coffee_shop",
+   "indoor": false
+  },
+  {
+   "name": "Wasabi Bistro",
+   "kind": "restaurant",
+   "lat": 38.981904,
+   "lon": -76.937352,
+   "hours": null,
+   "cuisine": "japanese",
+   "indoor": false
+  },
+  {
+   "name": "Yahentamitsi Dining Hall",
+   "kind": "dining_hall",
+   "lat": 38.991067,
+   "lon": -76.944589,
+   "hours": null,
+   "cuisine": null,
+   "indoor": false
+  }
+ ]
+}

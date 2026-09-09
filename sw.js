@@ -20,7 +20,7 @@
  * longer required to see your changes.
  */
 
-const CACHE_VERSION = 'scheduler-v3';
+const CACHE_VERSION = 'scheduler-v4';
 
 // Relative paths on purpose, so the app works both at a domain root and in a
 // subfolder (e.g. username.github.io/Scheduler/).
@@ -33,6 +33,11 @@ const FILES_TO_CACHE = [
   'js/priority.js',
   'js/timeline.js',
   'js/tasks.js',
+  'js/campus.js',
+  'js/map.js',
+  'vendor/leaflet.js',
+  'vendor/leaflet.css',
+  'data/dining.json',
   'data/starter-schedule.json',
   'manifest.webmanifest',
   'icons/icon-192.png',

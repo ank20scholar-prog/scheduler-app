@@ -17,7 +17,7 @@
     default-src 'self';
     script-src 'self';
     style-src 'self';
-    img-src 'self' data:;
+    img-src 'self' data: https://*.tile.openstreetmap.org https://tile.openstreetmap.org;
     font-src 'self';
     connect-src 'self';
     manifest-src 'self';
@@ -44,6 +44,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Scheduler" />
 
+  <link rel="stylesheet" href="vendor/leaflet.css" />
   <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
@@ -315,6 +316,54 @@
 </main>
 
 <!-- ============================================================
+     VIEW 4 — MAP: today's route between buildings, and food on the way
+     ============================================================ -->
+<main id="view-map" class="view" hidden>
+  <div class="map-shell">
+    <div id="map" class="map"></div>
+
+    <!-- Walking guide, positioned over the map by map.js -->
+    <div class="walker" id="walker" hidden aria-hidden="true">
+      <svg viewBox="0 0 40 46">
+        <ellipse class="ch-shadow" cx="20" cy="43" rx="9" ry="2.5" />
+        <g class="walker-body">
+          <path class="ch-torso" d="M13 34 Q13 21 20 21 Q27 21 27 34 Z" />
+          <circle class="ch-head" cx="20" cy="14" r="7" />
+          <path class="ch-hair" d="M13 12 Q15 6 20 6 Q25 6 27 12 Q23 8 20 9 Q16 9 13 12 Z" />
+          <circle class="ch-eye" cx="17.5" cy="15" r="1.4" />
+          <circle class="ch-eye" cx="22.5" cy="15" r="1.4" />
+          <path class="ch-limb walker-leg-a" d="M18 34 L16 43" />
+          <path class="ch-limb walker-leg-b" d="M22 34 L24 43" />
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Where you're headed next -->
+  <section class="card next-stop" id="next-stop" hidden>
+    <h2 class="card-title" id="next-stop-title">Next stop</h2>
+    <p class="sub" id="next-stop-detail"></p>
+  </section>
+
+  <section class="card">
+    <div class="food-head">
+      <h2 class="card-title">Food</h2>
+      <button type="button" id="food-btn" class="secondary-btn">I need food</button>
+    </div>
+    <p class="sub" id="food-hint">Finds places on the way to your next class, or near you if nothing is coming up.</p>
+    <ul class="food-list" id="food-list"></ul>
+  </section>
+
+  <section class="card">
+    <h2 class="card-title">Today's route</h2>
+    <ol class="route-list" id="route-list"></ol>
+    <p class="empty" id="route-empty" hidden>No classes with a known building today.</p>
+  </section>
+
+  <p class="sub map-credit">Map data &copy; OpenStreetMap contributors. Dining data refreshed from OpenStreetMap.</p>
+</main>
+
+<!-- ============================================================
      Bottom tab bar
      ============================================================ -->
 <nav class="tabbar">
@@ -324,6 +373,9 @@
   <button type="button" class="tab" data-view="tasks">
     <span class="tab-icon">◆</span><span>Tasks</span>
     <span class="tab-badge" id="tab-badge" hidden></span>
+  </button>
+  <button type="button" class="tab" data-view="map">
+    <span class="tab-icon">◎</span><span>Map</span>
   </button>
   <button type="button" class="tab" data-view="schedule">
     <span class="tab-icon">▤</span><span>Schedule</span>
@@ -382,6 +434,7 @@
 <!-- Brief messages ("Saved", "Imported") float in here -->
 <div class="toast" id="toast" hidden></div>
 
+<script src="vendor/leaflet.js"></script>
 <script type="module" src="js/app.js"></script>
 </body>
 </html>

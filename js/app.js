@@ -8,7 +8,7 @@
 import {
   state, load, save, id, COLORS, sanitize, applyState,
   toISODate, fromISODate, addDays, fmt12, toMinutes, toHHMM,
-  entriesForDate, autoEntriesForDate
+  entriesForDate, autoEntriesForDate, encodeForTransfer, decodeTransfer
 } from './store.js';
 import { renderDay, tick } from './timeline.js';
 import { renderTasks } from './tasks.js';
@@ -536,6 +536,76 @@ function applyBackupText(text) {
   return true;
 }
 
+/* ---------- QR transfer to the phone ----------
+   Encodes the schedule into the URL fragment and renders it as a QR code.
+   Fragments are never sent to a server, so the data goes from this screen to
+   your phone's camera and nowhere else — no upload, no account, no server. */
+$('#qr-btn').addEventListener('click', () => {
+  const box = $('#qr-box');
+
+  if (!box.hidden) { box.hidden = true; return; }
+
+  try {
+    const payload = encodeForTransfer();
+    const url = `${location.origin}${location.pathname}#s=${payload}`;
+
+    // Type 0 lets the library pick the smallest size that fits; 'L' error
+    // correction maximises capacity, which matters for a payload this size.
+    const qr = qrcode(0, 'L');
+    qr.addData(url);
+    qr.make();
+
+    $('#qr-canvas').innerHTML = qr.createImgTag(5, 8);
+    box.hidden = false;
+    toast('Scan this with your phone');
+  } catch (err) {
+    // Almost always "code length overflow" — too much data for one QR.
+    console.error(err);
+    $('#qr-canvas').innerHTML = '';
+    box.hidden = true;
+    toast('Schedule is too large for a QR code — use the paste option');
+  }
+});
+
+$('#qr-copy').addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(JSON.stringify(state, null, 2));
+    toast('Backup copied — paste it on your phone');
+  } catch {
+    toast('Could not copy on this device');
+  }
+});
+
+/* If the app was opened from a QR link, load the schedule it carries.
+   Runs before the first render so the app comes up already populated. */
+function importFromLink() {
+  const hash = location.hash;
+  if (!hash.startsWith('#s=')) return false;
+
+  try {
+    const decoded = decodeTransfer(hash.slice(3));
+    // Still sanitised: arriving by QR earns no extra trust.
+    const clean = sanitize(decoded);
+
+    const count = clean.classes.length + clean.blocks.length + clean.tasks.length;
+    if (!count) throw new Error('nothing usable in the link');
+
+    if (confirm(`Load this schedule from the link? (${count} entries — replaces what is here.)`)) {
+      applyState(clean);
+      save();
+      return true;
+    }
+    return false;
+  } catch (err) {
+    console.error('Could not read the transfer link:', err);
+    return false;
+  } finally {
+    // Strip the payload from the address bar either way, so it does not sit
+    // in history or get shared by copying the URL.
+    history.replaceState(null, '', location.pathname + location.search);
+  }
+}
+
 $('#import-btn').addEventListener('click', () => $('#import-file').click());
 
 /* Paste route — far easier than the Files app on a phone. */
@@ -707,8 +777,10 @@ async function seedIfFirstRun() {
 async function init() {
   load();
 
-  // Before wiring the inputs, so the day-window fields show seeded values.
-  const seeded = await seedIfFirstRun();
+  // A QR link wins over first-run seeding: if you scanned a code, that is
+  // what you asked for.
+  const fromLink = importFromLink();
+  const seeded = fromLink ? false : await seedIfFirstRun();
 
   buildSwatches($('#class-swatches'), (c) => { draftClassColor = c; }, draftClassColor);
   buildSwatches($('#gap-swatches'), (c) => { draftGapColor = c; }, draftGapColor);
@@ -724,7 +796,8 @@ async function init() {
   $('#task-time').value = toHHMM(soon.getHours() * 60);
 
   refresh();
-  if (seeded) toast('Your schedule is loaded');
+  if (fromLink) toast('Schedule loaded from your link');
+  else if (seeded) toast('Your schedule is loaded');
 
   // The heartbeat: moves the now-line and updates the character.
   setInterval(() => tick(selectedDate), 1000);

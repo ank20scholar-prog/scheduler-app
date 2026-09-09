@@ -440,3 +440,75 @@ export function gapsForDate(isoDate, minGap = 20) {
 
   return gaps;
 }
+
+// ------------------------------------------------------------
+// Compact transfer encoding (for the phone QR code)
+// ------------------------------------------------------------
+
+/* A QR code holds roughly 2.9KB. The full backup JSON is bigger than that once
+ * base64-encoded, so transfers use a compact form: positional arrays instead of
+ * named fields, times as minutes, ids dropped and regenerated on the other side.
+ *
+ * The payload travels in the URL fragment, which browsers never send to a
+ * server — so the schedule goes from screen to camera and nowhere else.
+ */
+
+function toBase64Url(text) {
+  const bytes = new TextEncoder().encode(text);
+  let binary = '';
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function fromBase64Url(encoded) {
+  const padded = encoded.replace(/-/g, '+').replace(/_/g, '/');
+  const binary = atob(padded + '='.repeat((4 - (padded.length % 4)) % 4));
+  const bytes = Uint8Array.from(binary, (ch) => ch.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
+export function encodeForTransfer() {
+  const payload = {
+    v: 1,
+    // [title, location, days, startMinutes, endMinutes, colour]
+    c: state.classes.map((c) => [
+      c.title, c.location || '', c.days.join(''),
+      toMinutes(c.start), toMinutes(c.end), c.color
+    ]),
+    // [title, date, startMinutes, endMinutes, colour]
+    b: state.blocks.map((b) => [b.title, b.date, toMinutes(b.start), toMinutes(b.end), b.color]),
+    // [title, priority initial, due, done]
+    t: state.tasks.map((t) => [t.title, t.priority[0], t.due, t.done ? 1 : 0]),
+    s: [state.settings.dayStart, state.settings.dayEnd, state.settings.autoSleep ? 1 : 0]
+  };
+  return toBase64Url(JSON.stringify(payload));
+}
+
+/* Turn a transfer payload back into a normal backup object.
+   The result still goes through sanitize() before it is applied — a compact
+   encoding is not a reason to trust it any less. */
+export function decodeTransfer(encoded) {
+  const payload = JSON.parse(fromBase64Url(encoded));
+  if (!payload || payload.v !== 1) throw new Error('unrecognised transfer format');
+
+  const PRIORITY = { h: 'high', m: 'medium', l: 'low' };
+
+  return {
+    classes: (payload.c || []).map(([title, location, days, start, end, color]) => ({
+      id: id(), title, location,
+      days: String(days).split('').map(Number),
+      start: toHHMM(start), end: toHHMM(end), color
+    })),
+    blocks: (payload.b || []).map(([title, date, start, end, color]) => ({
+      id: id(), title, date, start: toHHMM(start), end: toHHMM(end), color
+    })),
+    tasks: (payload.t || []).map(([title, priority, due, done]) => ({
+      id: id(), title, priority: PRIORITY[priority] || 'medium', due, done: !!done
+    })),
+    settings: {
+      dayStart: payload.s?.[0] || '07:00',
+      dayEnd: payload.s?.[1] || '23:00',
+      autoSleep: payload.s?.[2] !== 0
+    }
+  };
+}

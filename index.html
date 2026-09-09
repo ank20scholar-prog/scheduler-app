@@ -17,9 +17,9 @@
     default-src 'self';
     script-src 'self';
     style-src 'self';
-    img-src 'self' data: https://*.tile.openstreetmap.org https://tile.openstreetmap.org;
+    img-src 'self' data: https://*.basemaps.cartocdn.com https://*.tile.openstreetmap.org;
     font-src 'self';
-    connect-src 'self';
+    connect-src 'self' https://router.project-osrm.org;
     manifest-src 'self';
     worker-src 'self';
     media-src 'none';
@@ -305,6 +305,13 @@
 
     <!-- Paste route. On a phone, picking a file out of the Files app is
          fiddly; pasting the text straight in is far quicker. -->
+    <button type="button" id="qr-btn" class="secondary-btn wide">Show QR code for my phone</button>
+    <div class="qr-box" id="qr-box" hidden>
+      <div id="qr-canvas" class="qr-canvas"></div>
+      <p class="sub">Point your phone's camera at this, then open the link. Your schedule loads straight in — nothing is uploaded anywhere.</p>
+      <button type="button" id="qr-copy" class="secondary-btn wide">Copy backup text instead</button>
+    </div>
+
     <details class="paste-import">
       <summary>Paste a backup instead</summary>
       <p class="sub">Copy the backup text and paste it here — useful on a phone, where picking files is awkward.</p>
@@ -343,6 +350,19 @@
   <section class="card next-stop" id="next-stop" hidden>
     <h2 class="card-title" id="next-stop-title">Next stop</h2>
     <p class="sub" id="next-stop-detail"></p>
+
+    <div class="row directions-row">
+      <button type="button" id="route-btn" class="secondary-btn">Show walking route</button>
+      <button type="button" id="maps-btn" class="secondary-btn">Open in Maps</button>
+    </div>
+    <p class="sub" id="route-detail"></p>
+    <label class="toggle-row route-opt">
+      <input type="checkbox" id="route-from-me" />
+      <span>
+        <strong>Route from my location</strong>
+        <span class="sub">Sends your coordinates to the routing service for that one request. Off by default, so only public building locations are sent.</span>
+      </span>
+    </label>
   </section>
 
   <section class="card">
@@ -435,6 +455,7 @@
 <div class="toast" id="toast" hidden></div>
 
 <script src="vendor/leaflet.js"></script>
+<script src="vendor/qrcode.js"></script>
 <script type="module" src="js/app.js"></script>
 </body>
 </html>

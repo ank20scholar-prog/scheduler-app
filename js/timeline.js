@@ -202,6 +202,15 @@ function renderBlocks(isoDate, onBlockTap) {
 
     div.appendChild(title);
 
+    /* Sleep is the one generated block that should be unmissable rather than
+       quiet — it is the anchor the rest of the day hangs off. Given a 7-hour
+       block is several hundred pixels tall, there is room for a proper
+       sleeping figure inside it. */
+    if (entry.auto === 'sleep' && height > 120) {
+      div.classList.add('is-sleep');
+      div.appendChild(buildSleeper());
+    }
+
     // Only show the time range if the block is tall enough to fit it.
     if (height > 40) {
       const meta = document.createElement('div');
@@ -214,6 +223,48 @@ function renderBlocks(isoDate, onBlockTap) {
     div.addEventListener('click', () => onBlockTap(entry));
     el.blocks.appendChild(div);
   });
+}
+
+/* The sleeping figure that sits inside the Sleep block: a person under a
+   duvet, breathing, with Zzz drifting up. Built in code rather than written
+   into index.html because it is created per-day alongside the block. */
+function buildSleeper() {
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('class', 'sleeper');
+  svg.setAttribute('viewBox', '0 0 200 90');
+  svg.setAttribute('aria-hidden', 'true');
+
+  svg.innerHTML = `
+    <ellipse class="sleeper-shadow" cx="100" cy="79" rx="66" ry="5" />
+
+    <!-- pillow -->
+    <rect class="sleeper-pillow" x="40" y="46" width="40" height="22" rx="9" />
+
+    <g class="sleeper-body">
+      <!-- head -->
+      <circle class="sleeper-head" cx="66" cy="50" r="15" />
+      <!-- hair -->
+      <path class="sleeper-hair" d="M52 46 Q54 34 66 34 Q78 34 80 46 Q73 39 66 40 Q58 40 52 46 Z" />
+      <!-- closed eyes, drawn as gentle curves -->
+      <path class="sleeper-eye" d="M59 50 q3 3 6 0" />
+      <path class="sleeper-eye" d="M69 50 q3 3 6 0" />
+      <!-- duvet, rising and falling with the breath -->
+      <path class="sleeper-duvet" d="M78 68 Q78 50 104 50 L150 50 Q166 50 166 68 Z" />
+      <path class="sleeper-duvet-edge" d="M78 60 Q120 54 166 60" />
+    </g>
+
+    <!-- bed base -->
+    <rect class="sleeper-bed" x="36" y="68" width="134" height="7" rx="3.5" />
+
+    <g class="sleeper-zzz">
+      <text x="92" y="30" class="sleeper-z z1">z</text>
+      <text x="106" y="20" class="sleeper-z z2">z</text>
+      <text x="120" y="11" class="sleeper-z z3">z</text>
+    </g>
+  `;
+
+  return svg;
 }
 
 // The empty stretches, drawn as dashed outlines you can tap to fill.

@@ -33,16 +33,24 @@ const el = {
   nextDetail:   document.getElementById('next-stop-detail'),
   foodBtn:      document.getElementById('food-btn'),
   foodList:     document.getElementById('food-list'),
-  foodHint:     document.getElementById('food-hint')
+  foodHint:     document.getElementById('food-hint'),
+
+  routeBtn:     document.getElementById('route-btn'),
+  mapsBtn:      document.getElementById('maps-btn'),
+  routeDetail:  document.getElementById('route-detail'),
+  routeFromMe:  document.getElementById('route-from-me')
 };
 
 let map = null;
+let tiles = null;
+let routeLayer = null;      // the walking route drawn by the router
 let layers = null;          // L.LayerGroup holding everything we redraw
 let userMarker = null;
 let userPosition = null;    // { lat, lon } — stays in this module, never sent
 let dining = null;          // contents of data/dining.json, loaded once
 let currentDate = null;
 let watchId = null;
+let foodShowing = false;    // re-rank as you walk, but only once asked
 
 /* ------------------------------------------------------------
    Set-up
@@ -61,12 +69,21 @@ export function showMap(isoDate) {
       attributionControl: false
     });
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      // Keep the tile servers' terms satisfied even though we render our own
-      // credit line under the map.
-      attribution: '&copy; OpenStreetMap'
-    }).addTo(map);
+    /* CARTO's minimal basemaps rather than standard OSM tiles. Standard OSM is
+       busy and saturated; it needed a heavy CSS filter to sit alongside this
+       app's palette, and the filter looked like a filter. Positron is already
+       a quiet warm grey, and Dark Matter is a proper dark style rather than an
+       inverted light one. */
+    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    tiles = L.tileLayer(
+      `https://{s}.basemaps.cartocdn.com/${dark ? 'dark_all' : 'light_all'}/{z}/{x}/{y}{r}.png`,
+      { maxZoom: 20, subdomains: 'abcd', attribution: '&copy; OpenStreetMap, &copy; CARTO' }
+    ).addTo(map);
+
+    // Follow the system theme if it changes while the app is open.
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+      tiles.setUrl(`https://{s}.basemaps.cartocdn.com/${e.matches ? 'dark_all' : 'light_all'}/{z}/{x}/{y}{r}.png`);
+    });
 
     layers = L.layerGroup().addTo(map);
     bindWalkerToMap();   // must happen after the map exists
@@ -95,6 +112,9 @@ function startLocating() {
       userPosition = { lat: pos.coords.latitude, lon: pos.coords.longitude };
       drawUser();
       drawRoute();
+      // Re-rank from where you are NOW. Walk past somewhere and it drops down
+      // the list; get closer to something and it climbs.
+      if (foodShowing) showFood();
     },
     (err) => {
       // Denied or unavailable. The map still works, it just cannot show "you".
@@ -184,6 +204,11 @@ function drawRoute() {
       zIndexOffset: isNext ? 800 : 0
     })
       .bindPopup(`<strong>${stop.entry.title}</strong><br>${stop.place.name}<br>${fmt12(stop.entry.start)} – ${fmt12(stop.entry.end)}`)
+      .on('click', () => {
+        // Tap a pin to route there instead of to the default next class.
+        routeTarget = stop.place;
+        el.routeDetail.textContent = `Routing to ${stop.place.name}. Tap "Show walking route".`;
+      })
       .addTo(layers);
   });
 
@@ -347,17 +372,16 @@ function rankFood(origin, destination) {
     })
     // Ignore anything wildly out of the way.
     .filter((p) => p.toFood < 1500)
-    .sort((a, b) => {
-      // Known-open places first, then by smallest detour.
-      const aOpen = a.open === false ? 1 : 0;
-      const bOpen = b.open === false ? 1 : 0;
-      if (aOpen !== bOpen) return aOpen - bOpen;
-      return a.detour - b.detour;
-    })
+    /* Sorted purely by detour, least to most — nothing else reorders the list.
+       An earlier version floated known-open places to the top, which meant a
+       closed cafe 50 m away sank below an open one 300 m away. Open/closed is
+       shown as information; distance decides the order. */
+    .sort((a, b) => a.detour - b.detour)
     .slice(0, 6);
 }
 
 function showFood() {
+  foodShowing = true;
   el.foodList.innerHTML = '';
 
   if (!dining) {
@@ -436,6 +460,130 @@ function showFood() {
 }
 
 el.foodBtn.addEventListener('click', showFood);
+
+/* ------------------------------------------------------------
+   Walking directions
+   ------------------------------------------------------------
+   Real paths, from the public OSRM foot router.
+
+   By default the route is drawn BUILDING TO BUILDING, so the only coordinates
+   leaving the device are two public campus locations — nothing about where you
+   personally are. Routing from your live position is available but opt-in, and
+   the checkbox says plainly what it sends. That is the whole reason it is a
+   checkbox rather than the default.
+*/
+const OSRM = 'https://router.project-osrm.org/route/v1/foot';
+
+// Which building we are routing to. Set by tapping a pin, defaults to next class.
+let routeTarget = null;
+
+function currentTarget() {
+  if (routeTarget) return routeTarget;
+
+  const stops = todayStops(currentDate);
+  if (!stops.length) return null;
+
+  const isToday = currentDate === toISODate(new Date());
+  const mins = nowMinutes();
+  const index = isToday ? stops.findIndex((s) => toMinutes(s.entry.end) > mins) : 0;
+  return index >= 0 ? stops[index].place : stops[0].place;
+}
+
+/* Where the route starts.
+ *
+ *   1. Your live position — ONLY when you tick the box. Never silently, since
+ *      that is the one case where personal data leaves the device.
+ *   2. Otherwise the building you would be walking from: the previous class.
+ *   3. For the first class of the day there is no previous building, so the
+ *      route starts from the middle of campus. An earlier version returned the
+ *      target itself here, which made the button report "you are already at
+ *      that building" and draw nothing.
+ */
+function routeOrigin() {
+  if (el.routeFromMe.checked && userPosition) return userPosition;
+
+  const stops = todayStops(currentDate);
+  if (!stops.length) return CAMPUS_CENTRE;
+
+  const target = currentTarget();
+  const index = stops.findIndex((s) => s.place === target);
+
+  if (index > 0) return stops[index - 1].place;
+  return CAMPUS_CENTRE;
+}
+
+async function showWalkingRoute() {
+  const target = currentTarget();
+  if (!target) { el.routeDetail.textContent = 'No mappable class to route to.'; return; }
+
+  const origin = routeOrigin();
+  if (origin === target) {
+    el.routeDetail.textContent = 'You are already at that building.';
+    return;
+  }
+
+  const fromLabel = (el.routeFromMe.checked && userPosition)
+    ? 'your location'
+    : (origin === CAMPUS_CENTRE ? 'the middle of campus' : 'your previous class');
+
+  el.routeDetail.textContent = 'Finding a walking route…';
+
+  try {
+    const url = `${OSRM}/${origin.lon},${origin.lat};${target.lon},${target.lat}` +
+                '?overview=full&geometries=geojson';
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`router returned ${response.status}`);
+
+    const data = await response.json();
+    const route = data.routes?.[0];
+    if (!route) throw new Error('no route found');
+
+    if (routeLayer) routeLayer.remove();
+
+    // GeoJSON is [lon, lat]; Leaflet wants [lat, lon].
+    const line = route.geometry.coordinates.map(([lon, lat]) => [lat, lon]);
+    routeLayer = L.polyline(line, { className: 'walk-route', weight: 5, opacity: .95 }).addTo(map);
+    map.fitBounds(routeLayer.getBounds().pad(0.2));
+
+    /* Deliberately NOT using route.duration. The public OSRM instance does not
+       serve a real pedestrian profile and falls back to driving, so its
+       duration is a drive time — it reported a 1175 m walk as 3 minutes, which
+       is 23 km/h. The geometry is still a sensible on-foot path, so we keep the
+       shape and distance and apply our own walking pace to the distance. */
+    const minutes = walkMinutes(route.distance);
+    el.routeDetail.textContent =
+      `${formatDistance(route.distance)} · about ${minutes} min walk to ${target.name}, from ${fromLabel}.`;
+  } catch (err) {
+    // The router is a free public service and can be slow or down. Fall back
+    // to the straight-line estimate rather than leaving a dead button.
+    const metres = distanceMetres(origin, target);
+    el.routeDetail.textContent =
+      `Router unavailable (${err.message}). Straight-line estimate: ` +
+      `${formatDistance(metres)}, about ${walkMinutes(metres)} min.`;
+  }
+}
+
+/* Hand off to the phone's own maps app for live turn-by-turn. Nothing is sent
+   by us — the OS opens its map with the destination filled in. */
+function openInMaps() {
+  const target = currentTarget();
+  if (!target) { el.routeDetail.textContent = 'No mappable class to route to.'; return; }
+
+  const isApple = /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
+  const url = isApple
+    ? `https://maps.apple.com/?daddr=${target.lat},${target.lon}&dirflg=w`
+    : `https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lon}&travelmode=walking`;
+
+  window.open(url, '_blank', 'noopener');
+}
+
+el.routeBtn.addEventListener('click', showWalkingRoute);
+el.mapsBtn.addEventListener('click', openInMaps);
+el.routeFromMe.addEventListener('change', () => {
+  if (el.routeFromMe.checked && !userPosition) {
+    el.routeDetail.textContent = 'Waiting for your location…';
+  }
+});
 
 /* Kept as an explicit hook from app.js so the module's set-up order is
    visible there rather than relying on import side effects. The map itself is

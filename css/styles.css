@@ -1,0 +1,725 @@
+/* ============================================================
+   styles.css — everything visual.
+
+   Styled after the Claude desktop app: warm cream backgrounds, clay-orange
+   accent, serif headings against a sans body, soft borders, generous
+   rounding. Light and dark both supported; dark follows the phone's setting.
+   ============================================================ */
+
+/* ---------- Design tokens: change colours here, once ---------- */
+:root {
+  /* Warm neutral ground, the way Claude's canvas reads */
+  --bg:          #faf9f5;
+  --bg-elev:     #ffffff;
+  --surface:     #ffffff;
+  --surface-2:   #f2f0e9;
+  --border:      #e5e2d9;
+  --border-soft: #efedE6;
+
+  --text:        #1f1e1d;
+  --text-dim:    #6b6862;
+  --text-faint:  #94908a;
+
+  --accent:      #d97757;   /* Claude clay-orange — primary */
+  --accent-deep: #c2603f;
+  --accent-soft: #f7ede8;
+
+  /* Priority colours, kept in the same warm family so nothing clashes */
+  --hi:          #bf4d3a;   /* high   — deep terracotta */
+  --med:         #d9954f;   /* medium — amber */
+  --low:         #7d9b76;   /* low    — sage */
+
+  --radius:      14px;
+  --radius-sm:   10px;
+  --shadow:      0 1px 2px rgba(31,30,29,.05), 0 4px 16px rgba(31,30,29,.05);
+  --tabbar-h:    64px;
+
+  --ease:        cubic-bezier(.22,.61,.36,1);
+
+  --font-serif:  ui-serif, "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --font-sans:   -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:          #262624;
+    --bg-elev:     #30302e;
+    --surface:     #30302e;
+    --surface-2:   #3a3a37;
+    --border:      #45443f;
+    --border-soft: #3a3a37;
+
+    --text:        #f5f4ee;
+    --text-dim:    #a8a49c;
+    --text-faint:  #7d7973;
+
+    --accent:      #e08b6d;
+    --accent-deep: #d97757;
+    --accent-soft: #3d332e;
+
+    --hi:          #e07a63;
+    --med:         #e0a765;
+    --low:         #97b38f;
+
+    --shadow:      0 1px 2px rgba(0,0,0,.2), 0 4px 16px rgba(0,0,0,.2);
+  }
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+/* The `hidden` attribute must always win. Without this, any rule that sets a
+   `display` on a class (e.g. .tab-badge { display: flex }) beats the browser's
+   built-in [hidden] rule, and setting el.hidden = true does nothing at all. */
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  /* Room for the tab bar and the iPhone home indicator. */
+  padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+  max-width: 560px;
+  margin-inline: auto;
+  overscroll-behavior-y: contain;
+}
+
+/* Serif headings are the strongest single cue of the Claude look. */
+h1, h2, .card-title, .stage-status {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  letter-spacing: -.01em;
+  margin: 0;
+}
+
+.sub { color: var(--text-dim); font-size: .82rem; margin: 0; }
+.empty { text-align: center; color: var(--text-faint); padding: 28px 16px; margin: 0; font-size: .9rem; }
+
+/* ============================================================
+   Header
+   ============================================================ */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  padding: calc(env(safe-area-inset-top) + 12px) 16px 10px;
+  background: color-mix(in srgb, var(--bg) 90%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border);
+}
+
+.header-row { display: flex; align-items: center; gap: 8px; }
+.header-center { flex: 1; text-align: center; }
+.header-center h1 { font-size: 1.4rem; }
+
+.ghost-btn {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-dim);
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: transform .18s var(--ease), background .18s var(--ease), color .18s var(--ease);
+}
+.ghost-btn:active { transform: scale(.9); background: var(--accent-soft); color: var(--accent); }
+
+.clock-strip { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+.clock {
+  font-variant-numeric: tabular-nums;
+  font-size: .82rem; font-weight: 600;
+  color: var(--accent);
+}
+.day-progress {
+  flex: 1; height: 4px;
+  background: var(--surface-2);
+  border-radius: 2px; overflow: hidden;
+}
+.day-progress-fill {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, var(--accent), var(--med));
+  border-radius: 2px;
+  transition: width 1s linear;
+}
+
+/* ============================================================
+   The character stage
+   ============================================================ */
+.stage {
+  margin: 14px 16px;
+  padding: 14px;
+  display: flex; align-items: center; gap: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Warm glow drifting behind the character */
+.stage::before {
+  content: "";
+  position: absolute; inset: -40%;
+  background: radial-gradient(circle at 22% 50%,
+              color-mix(in srgb, var(--accent) 16%, transparent), transparent 55%);
+  animation: drift 12s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+@keyframes drift {
+  from { transform: translate3d(-6%, -3%, 0) scale(1); }
+  to   { transform: translate3d(6%, 4%, 0) scale(1.12); }
+}
+
+.character { width: 108px; height: 92px; flex-shrink: 0; position: relative; z-index: 1; }
+.stage-text { position: relative; z-index: 1; min-width: 0; flex: 1; }
+.stage-status { font-size: 1.08rem; }
+.stage-detail { margin-top: 3px; }
+
+.block-progress {
+  margin-top: 9px; height: 5px;
+  background: var(--surface-2);
+  border-radius: 3px; overflow: hidden;
+}
+.block-progress-fill {
+  height: 100%; width: 0%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width .6s var(--ease);
+}
+
+/* ---------- Character parts ---------- */
+.ch-shadow { fill: rgba(31,30,29,.10); }
+.ch-torso  { fill: var(--accent); }
+.ch-head   { fill: #e8c4a8; }
+.ch-hair   { fill: #4a3f38; }
+.ch-eye    { fill: #33291f; transform-origin: center; }
+.ch-mouth  { fill: none; stroke: #33291f; stroke-width: 1.6; stroke-linecap: round; }
+.ch-limb   { fill: none; stroke: var(--accent); stroke-width: 7; stroke-linecap: round; }
+.ch-hand   { fill: #e8c4a8; }
+.ch-pencil { fill: var(--med); }
+.ch-desk rect { fill: var(--surface-2); }
+.ch-paper  { fill: var(--bg-elev); stroke: var(--border); stroke-width: .8; }
+.ch-mug rect { fill: var(--low); }
+.ch-mug path { fill: none; stroke: var(--low); stroke-width: 2; }
+.zzz { fill: var(--text-faint); font-size: 11px; font-weight: 700; font-family: var(--font-sans); }
+
+/* Gentle breathing bob, always on */
+.ch-body { animation: bob 3.4s ease-in-out infinite; transform-origin: 70px 90px; }
+@keyframes bob {
+  0%,100% { transform: translateY(0) rotate(0deg); }
+  50%     { transform: translateY(-2.5px) rotate(-.6deg); }
+}
+
+/* Blinking, always on */
+.ch-eyes { animation: blink 5.2s infinite; transform-origin: center; transform-box: fill-box; }
+@keyframes blink {
+  0%,94%,100% { transform: scaleY(1); }
+  96%         { transform: scaleY(.12); }
+}
+
+/* Props hidden by default, revealed per state */
+.ch-desk, .ch-mug, .ch-zzz, .ch-pencil { opacity: 0; transition: opacity .45s var(--ease); }
+.ch-arm { transform-origin: 84px 70px; }
+
+/* In class: desk + pencil + writing motion */
+.stage.state-class .ch-desk,
+.stage.state-class .ch-pencil { opacity: 1; }
+.stage.state-class .ch-arm { animation: write .85s ease-in-out infinite; }
+@keyframes write {
+  0%,100% { transform: rotate(0deg) translateX(0); }
+  50%     { transform: rotate(-9deg) translateX(-3px); }
+}
+
+/* Custom block / busy: desk, steadier motion */
+.stage.state-busy .ch-desk { opacity: 1; }
+.stage.state-busy .ch-arm  { animation: tap 1.9s ease-in-out infinite; }
+@keyframes tap {
+  0%,100% { transform: rotate(0deg); }
+  50%     { transform: rotate(-4deg); }
+}
+
+/* Free time: mug, relaxed sway */
+.stage.state-free .ch-mug { opacity: 1; }
+.stage.state-free .ch-body { animation: sway 4.2s ease-in-out infinite; }
+@keyframes sway {
+  0%,100% { transform: translateY(0) rotate(-1.6deg); }
+  50%     { transform: translateY(-3px) rotate(1.6deg); }
+}
+
+/* Night / outside the day window: sleeping */
+.stage.state-night .ch-zzz { opacity: 1; }
+.stage.state-night .ch-body { animation: bob 5.5s ease-in-out infinite; }
+.stage.state-night .ch-eyes { animation: none; transform: scaleY(.12); transform-origin: center; transform-box: fill-box; }
+.zzz { animation: float 3s ease-in-out infinite; }
+.z2 { animation-delay: .4s; } .z3 { animation-delay: .8s; }
+@keyframes float {
+  0%   { opacity: 0; transform: translate(0,4px) scale(.8); }
+  40%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(4px,-8px) scale(1.15); }
+}
+
+/* ============================================================
+   Widget dials
+   ============================================================ */
+.widgets { display: flex; gap: 10px; margin: 0 16px 14px; }
+
+.widget {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 6px 10px;
+  display: flex; flex-direction: column; align-items: center; gap: 7px;
+  box-shadow: var(--shadow);
+  transition: transform .18s var(--ease);
+}
+.widget:active { transform: scale(.97); }
+
+.ring-wrap { position: relative; width: 60px; height: 60px; }
+
+/* Rotated so the ring starts filling from 12 o'clock rather than 3. */
+.ring { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring-bg   { fill: none; stroke: var(--surface-2); stroke-width: 3.2; }
+.ring-fill {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  /* r=15.9 gives a circumference of ~100, so dashoffset is just 100 - percent. */
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  transition: stroke-dashoffset .7s var(--ease);
+}
+.ring-fill.alt  { stroke: var(--low); }
+.ring-fill.warm { stroke: var(--med); }
+
+.ring-value {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .84rem; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.ring-value.small { font-size: .68rem; }
+
+.widget-label {
+  font-size: .62rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .09em;
+  color: var(--text-faint);
+}
+
+/* ============================================================
+   Timeline
+   ============================================================ */
+.timeline-wrap { padding: 0 16px 20px; }
+
+/* Day-change slide. The direction class is set in JS so moving forward and
+   back feel physically different. */
+.slide-next { animation: slideNext .3s var(--ease); }
+.slide-prev { animation: slidePrev .3s var(--ease); }
+@keyframes slideNext {
+  from { opacity: 0; transform: translateX(26px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes slidePrev {
+  from { opacity: 0; transform: translateX(-26px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.timeline {
+  position: relative;
+  height: var(--tl-height, 800px);   /* set from JavaScript */
+  padding-left: 52px;
+}
+
+.hour-row {
+  position: absolute; left: 0; right: 0;
+  display: flex; align-items: flex-start; gap: 8px;
+  pointer-events: none;
+}
+.hour-label {
+  width: 44px; text-align: right;
+  font-size: .68rem; color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  transform: translateY(-6px);
+}
+.hour-rule { flex: 1; height: 1px; background: var(--border-soft); }
+
+.block {
+  position: absolute;
+  left: 52px; right: 0;
+  border-radius: var(--radius-sm);
+  padding: 7px 10px;
+  overflow: hidden;
+  /* Thick colour spine plus a tinted fill, so a course is identifiable from
+     its colour alone without reading the title. The tint is stronger in dark
+     mode because a low-percentage mix against a dark surface washes out. */
+  border-left: 4px solid var(--blk, var(--accent));
+  background: color-mix(in srgb, var(--blk, var(--accent)) 20%, var(--surface));
+  border-top: 1px solid color-mix(in srgb, var(--blk, var(--accent)) 30%, transparent);
+  border-right: 1px solid color-mix(in srgb, var(--blk, var(--accent)) 30%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--blk, var(--accent)) 30%, transparent);
+  cursor: pointer;
+  animation: blockIn .45s var(--ease) backwards;
+  transition: transform .18s var(--ease);
+}
+
+@media (prefers-color-scheme: dark) {
+  .block { background: color-mix(in srgb, var(--blk, var(--accent)) 30%, var(--surface)); }
+}
+
+/* Titles stay full-contrast --text on purpose. Tinting them toward the block
+   colour looked good in dark mode but washed out badly in light mode against
+   the pale fill. The colour spine and fill carry the coding; the text stays
+   readable. */
+.block:active { transform: scale(.985); }
+@keyframes blockIn {
+  from { opacity: 0; transform: translateY(7px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.block-title {
+  font-size: .86rem; font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.block-meta { font-size: .7rem; color: var(--text-dim); }
+
+.block.is-now {
+  box-shadow: 0 0 0 1.5px var(--blk, var(--accent));
+  animation: blockIn .45s var(--ease) backwards, glow 2.6s ease-in-out infinite;
+}
+@keyframes glow {
+  0%,100% { box-shadow: 0 0 0 1.5px var(--blk), 0 0 0 0 color-mix(in srgb, var(--blk) 40%, transparent); }
+  50%     { box-shadow: 0 0 0 1.5px var(--blk), 0 0 14px 3px color-mix(in srgb, var(--blk) 22%, transparent); }
+}
+
+/* Finished blocks step back slightly — enough to read as "done" at a glance,
+   but NOT enough to look disabled or greyed out. It was .45, which made the
+   whole day look switched off once the last class had passed. */
+.block.is-past { opacity: .82; }
+.block.is-past .block-title { text-decoration: line-through; text-decoration-thickness: 1px; }
+
+.gap {
+  position: absolute; left: 52px; right: 0;
+  /* Mixed toward the text colour rather than using --border directly, which
+     was almost invisible against the dark background. */
+  border: 1px dashed color-mix(in srgb, var(--text-faint) 55%, transparent);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-faint);
+  font-size: .74rem;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: border-color .2s var(--ease), color .2s var(--ease), background .2s var(--ease);
+}
+.gap:active { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.gap span { opacity: .55; transition: opacity .2s var(--ease); }
+.gap:hover span, .gap:active span { opacity: 1; }
+
+/* ---------- The moving "now" line ---------- */
+.now-line {
+  position: absolute; left: 40px; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 15%, transparent));
+  z-index: 6;
+  pointer-events: none;
+  transition: top 1s linear;   /* glides rather than jumping each tick */
+}
+.now-dot {
+  position: absolute; left: -4px; top: -4px;
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--accent);
+  animation: ping 2s ease-out infinite;
+}
+@keyframes ping {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent); }
+  70%  { box-shadow: 0 0 0 9px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.now-time {
+  position: absolute; right: 0; top: -18px;
+  font-size: .64rem; font-weight: 700; color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   Cards / forms
+   ============================================================ */
+.view { animation: viewIn .3s var(--ease); }
+@keyframes viewIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+.card {
+  margin: 14px 16px;
+  padding: 15px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.card-title { font-size: 1rem; margin-bottom: 8px; }
+
+.form { display: flex; flex-direction: column; gap: 10px; }
+.row { display: flex; gap: 10px; }
+.row > * { flex: 1; }
+.field { display: flex; flex-direction: column; gap: 4px; font-size: .74rem; color: var(--text-dim); }
+
+input[type="text"], input[type="date"], input[type="time"] {
+  width: 100%;
+  padding: 11px 12px;
+  font-size: 16px;          /* 16px minimum or iOS zooms the page on focus */
+  font-family: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition: border-color .18s var(--ease), box-shadow .18s var(--ease);
+}
+input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+input::placeholder { color: var(--text-faint); }
+
+.primary-btn, .secondary-btn {
+  padding: 12px;
+  font-size: .92rem; font-weight: 600; font-family: inherit;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: transform .16s var(--ease), background .16s var(--ease);
+}
+.primary-btn { background: var(--accent); color: #fff; }
+.primary-btn:active { transform: scale(.97); background: var(--accent-deep); }
+.secondary-btn { background: var(--surface-2); color: var(--text); border-color: var(--border); }
+.secondary-btn:active { transform: scale(.97); background: var(--accent-soft); }
+.wide { width: 100%; margin-top: 10px; }
+
+/* ---------- Segmented priority control ---------- */
+.segmented {
+  display: flex; gap: 6px;
+  background: var(--surface-2);
+  padding: 4px; border-radius: var(--radius-sm);
+}
+.seg {
+  flex: 1; padding: 9px 6px;
+  font-size: .82rem; font-weight: 600; font-family: inherit;
+  background: transparent; color: var(--text-dim);
+  border: none; border-radius: 7px; cursor: pointer;
+  transition: background .2s var(--ease), color .2s var(--ease), transform .16s var(--ease);
+}
+.seg:active { transform: scale(.95); }
+.seg.low.is-active    { background: color-mix(in srgb, var(--low) 20%, transparent); color: var(--low); }
+.seg.medium.is-active { background: color-mix(in srgb, var(--med) 20%, transparent); color: var(--med); }
+.seg.high.is-active   { background: color-mix(in srgb, var(--hi)  18%, transparent); color: var(--hi); }
+
+/* ---------- Day-of-week picker ---------- */
+.daypicker { display: flex; gap: 6px; }
+.daypicker button {
+  flex: 1; aspect-ratio: 1;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-dim);
+  font-size: .8rem; font-weight: 600; font-family: inherit;
+  cursor: pointer;
+  transition: transform .16s var(--ease), background .2s var(--ease), color .2s var(--ease);
+}
+.daypicker button:active { transform: scale(.9); }
+.daypicker button.is-on { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* ---------- Colour swatches ---------- */
+.swatches { display: flex; gap: 8px; flex-wrap: wrap; }
+.swatch {
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 2px solid transparent; cursor: pointer;
+  transition: transform .16s var(--ease);
+}
+.swatch:active { transform: scale(.85); }
+.swatch.is-on { border-color: var(--text); transform: scale(1.12); }
+
+/* ============================================================
+   Task list
+   ============================================================ */
+.task-groups { padding-bottom: 8px; }
+.group-head {
+  margin: 18px 16px 6px;
+  font-size: .7rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .09em;
+  color: var(--text-faint);
+}
+
+.task {
+  display: flex; align-items: flex-start; gap: 11px;
+  margin: 8px 16px; padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--pc, var(--accent));
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  animation: blockIn .35s var(--ease) backwards;
+  transition: opacity .3s var(--ease), transform .18s var(--ease);
+}
+.task:active { transform: scale(.99); }
+.task.done { opacity: .45; }
+.task.done .task-title { text-decoration: line-through; }
+
+.check {
+  width: 22px; height: 22px; flex-shrink: 0; margin-top: 1px;
+  border-radius: 50%;
+  border: 2px solid var(--pc, var(--accent));
+  background: transparent; cursor: pointer;
+  color: #fff; font-size: .72rem; line-height: 1;
+  transition: background .2s var(--ease), transform .16s var(--ease);
+}
+.check:active { transform: scale(.85); }
+.task.done .check { background: var(--pc); }
+
+/* Celebration only on the task you just touched. Scoped to .just-changed so
+   it does not re-fire for every completed task on each re-render. */
+.task.just-changed { animation: taskPulse .5s var(--ease); }
+.task.just-changed .check { animation: checkPop .45s var(--ease); }
+@keyframes taskPulse {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+@keyframes checkPop {
+  0%   { transform: scale(.5) rotate(-25deg); }
+  55%  { transform: scale(1.3) rotate(8deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+.task-main { flex: 1; min-width: 0; }
+.task-title { font-size: .92rem; font-weight: 550; word-break: break-word; }
+.task-meta { font-size: .74rem; color: var(--text-dim); margin-top: 3px; display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+
+.chip {
+  font-size: .63rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .05em; padding: 2px 7px; border-radius: 20px;
+  background: color-mix(in srgb, var(--pc) 16%, transparent);
+  color: var(--pc);
+}
+.overdue { color: var(--hi); font-weight: 600; }
+
+.task-del {
+  background: none; border: none; color: var(--text-faint);
+  font-size: 1rem; cursor: pointer; padding: 2px 4px;
+}
+.task-del:active { color: var(--hi); }
+
+/* ============================================================
+   Class list (schedule view)
+   ============================================================ */
+.class-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.class-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px; border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--blk, var(--accent)) 8%, var(--bg));
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--blk, var(--accent));
+}
+/* Solid colour dot, so the class list doubles as the colour legend. */
+.class-dot {
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--blk, var(--accent));
+  flex-shrink: 0;
+}
+.class-row .class-main { flex: 1; min-width: 0; }
+.class-row .class-name { font-size: .88rem; font-weight: 600; }
+.class-row .class-when { font-size: .72rem; color: var(--text-dim); }
+
+/* ============================================================
+   Tab bar
+   ============================================================ */
+.tabbar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  z-index: 30;
+  display: flex;
+  max-width: 560px; margin-inline: auto;
+  height: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  background: color-mix(in srgb, var(--bg-elev) 94%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid var(--border);
+}
+.tab {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  background: none; border: none; cursor: pointer;
+  color: var(--text-faint);
+  font-size: .66rem; font-family: inherit; font-weight: 600;
+  position: relative;
+  transition: color .2s var(--ease);
+}
+.tab-icon { font-size: 1.15rem; transition: transform .28s var(--ease); }
+.tab.is-active { color: var(--accent); }
+.tab.is-active .tab-icon { transform: translateY(-2px) scale(1.14); }
+
+.tab-badge {
+  position: absolute; top: 8px; right: 50%; margin-right: -22px;
+  min-width: 17px; height: 17px; padding: 0 4px;
+  border-radius: 9px;
+  background: var(--hi); color: #fff;
+  font-size: .62rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  animation: pop .3s var(--ease);
+}
+@keyframes pop { from { transform: scale(0); } to { transform: scale(1); } }
+
+/* ============================================================
+   Bottom sheet + toast
+   ============================================================ */
+.sheet-backdrop {
+  position: fixed; inset: 0; z-index: 40;
+  background: rgba(31,30,29,.35);
+  backdrop-filter: blur(2px);
+  animation: fadeIn .25s var(--ease);
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.sheet {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 41;
+  max-width: 560px; margin-inline: auto;
+  max-height: 86vh; overflow-y: auto;
+  background: var(--bg-elev);
+  border-radius: 20px 20px 0 0;
+  border-top: 1px solid var(--border);
+  padding: 10px 16px calc(20px + env(safe-area-inset-bottom));
+  animation: sheetUp .32s var(--ease);
+}
+@keyframes sheetUp { from { transform: translateY(100%); } to { transform: none; } }
+.sheet-handle {
+  width: 38px; height: 4px; border-radius: 2px;
+  background: var(--border);
+  margin: 0 auto 12px;
+}
+
+.toast {
+  position: fixed; left: 50%; z-index: 60;
+  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 14px);
+  transform: translateX(-50%);
+  background: var(--text);
+  color: var(--bg);
+  padding: 9px 16px; border-radius: 20px;
+  font-size: .82rem; box-shadow: var(--shadow);
+  animation: toastIn .3s var(--ease);
+  max-width: 88%; text-align: center;
+}
+@keyframes toastIn { from { opacity: 0; transform: translate(-50%, 12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+/* ============================================================
+   Honour "Reduce Motion" in iOS settings. Everything still works,
+   it just stops moving.
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+
+  <!-- Content Security Policy.
+       Every file this app uses is served from its own origin and it talks to
+       no external service, so everything else is forbidden outright. If a
+       malicious string ever did get injected, it has nowhere to load code
+       from and nowhere to send data to.
+         object-src 'none'   — no plugins
+         base-uri 'none'     — a <base> tag cannot be injected to re-point paths
+         form-action 'none'  — no form can post anywhere; all are handled in JS
+       Note: frame-ancestors is deliberately absent — it is ignored in a meta
+       tag and must be sent as an HTTP header, which GitHub Pages cannot do. -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self';
+    style-src 'self';
+    img-src 'self' data:;
+    font-src 'self';
+    connect-src 'self';
+    manifest-src 'self';
+    worker-src 'self';
+    media-src 'none';
+    object-src 'none';
+    base-uri 'none';
+    form-action 'none'
+  " />
+
+  <!-- Never leak the page URL to anywhere the user navigates. -->
+  <meta name="referrer" content="no-referrer" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+
+  <title>Scheduler</title>
+
+  <!-- These make the app installable to the iPhone home screen. -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#faf9f5" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#262624" media="(prefers-color-scheme: dark)" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Scheduler" />
+
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+<!-- ============================================================
+     HEADER — the date you are viewing, plus a live ticking clock
+     ============================================================ -->
+<header class="app-header">
+  <div class="header-row">
+    <button type="button" id="prev-day" class="ghost-btn" aria-label="Previous day">&#8249;</button>
+
+    <div class="header-center">
+      <h1 id="day-label">Today</h1>
+      <p id="day-date" class="sub"></p>
+    </div>
+
+    <button type="button" id="next-day" class="ghost-btn" aria-label="Next day">&#8250;</button>
+  </div>
+
+  <!-- Live clock + how much of the day is gone. Updates every second. -->
+  <div class="clock-strip">
+    <span id="live-clock" class="clock">--:--</span>
+    <div class="day-progress" aria-hidden="true">
+      <div id="day-progress-fill" class="day-progress-fill"></div>
+    </div>
+    <span id="day-remaining" class="sub"></span>
+  </div>
+</header>
+
+<!-- ============================================================
+     VIEW 1 — TODAY: the animated character + the live timeline
+     ============================================================ -->
+<main id="view-today" class="view">
+
+  <!-- The "stage": a little scene that reacts to what you're doing now. -->
+  <section class="stage" id="stage">
+    <svg class="character" id="character" viewBox="0 0 140 120" aria-hidden="true">
+      <!-- Soft ground shadow -->
+      <ellipse class="ch-shadow" cx="70" cy="108" rx="30" ry="5" />
+
+      <!-- Desk: only visible in the "class" and "work" states -->
+      <g class="ch-desk">
+        <rect x="30" y="86" width="80" height="6" rx="3" />
+        <rect x="36" y="92" width="5" height="16" rx="2" />
+        <rect x="99" y="92" width="5" height="16" rx="2" />
+        <!-- sheet of paper being written on -->
+        <rect class="ch-paper" x="74" y="78" width="26" height="9" rx="2" />
+      </g>
+
+      <!-- Body group: gently bobs, breathing-style -->
+      <g class="ch-body">
+        <!-- torso -->
+        <path class="ch-torso" d="M52 86 Q52 62 70 62 Q88 62 88 86 Z" />
+        <!-- head -->
+        <circle class="ch-head" cx="70" cy="46" r="17" />
+        <!-- hair / cap -->
+        <path class="ch-hair" d="M53 42 Q56 28 70 28 Q84 28 87 42 Q78 34 70 36 Q60 35 53 42 Z" />
+        <!-- eyes (blink via scaling) -->
+        <g class="ch-eyes">
+          <circle class="ch-eye" cx="64" cy="47" r="2.1" />
+          <circle class="ch-eye" cx="76" cy="47" r="2.1" />
+        </g>
+        <!-- mouth -->
+        <path class="ch-mouth" d="M66 53 Q70 56 74 53" />
+        <!-- writing arm: rotates back and forth in the class state -->
+        <g class="ch-arm">
+          <path class="ch-limb" d="M84 70 Q94 74 96 82" />
+          <circle class="ch-hand" cx="96" cy="83" r="3.4" />
+          <rect class="ch-pencil" x="94" y="72" width="2.2" height="12" rx="1" />
+        </g>
+        <!-- mug: appears in the "free" state instead of the pencil -->
+        <g class="ch-mug">
+          <rect x="90" y="74" width="9" height="8" rx="1.6" />
+          <path d="M99 76 q4 0 4 3 t-4 3" />
+        </g>
+      </g>
+
+      <!-- Sleep Zzz: only in the night state -->
+      <g class="ch-zzz">
+        <text x="92" y="36" class="zzz z1">z</text>
+        <text x="100" y="27" class="zzz z2">z</text>
+        <text x="108" y="19" class="zzz z3">z</text>
+      </g>
+    </svg>
+
+    <!-- Text description of what is happening right now -->
+    <div class="stage-text">
+      <p class="stage-status" id="stage-status">Loading…</p>
+      <p class="stage-detail sub" id="stage-detail"></p>
+      <!-- Thin bar showing progress through the current block -->
+      <div class="block-progress" id="block-progress" hidden>
+        <div class="block-progress-fill" id="block-progress-fill"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Three live dials. All update every second from timeline.js. -->
+  <section class="widgets" id="widgets">
+    <div class="widget">
+      <div class="ring-wrap">
+        <svg class="ring" viewBox="0 0 36 36" aria-hidden="true">
+          <circle class="ring-bg" cx="18" cy="18" r="15.9" />
+          <circle class="ring-fill" id="ring-day" cx="18" cy="18" r="15.9" />
+        </svg>
+        <span class="ring-value" id="w-day">0%</span>
+      </div>
+      <span class="widget-label">Day</span>
+    </div>
+
+    <div class="widget">
+      <div class="ring-wrap">
+        <svg class="ring" viewBox="0 0 36 36" aria-hidden="true">
+          <circle class="ring-bg" cx="18" cy="18" r="15.9" />
+          <circle class="ring-fill alt" id="ring-classes" cx="18" cy="18" r="15.9" />
+        </svg>
+        <span class="ring-value" id="w-classes">0/0</span>
+      </div>
+      <span class="widget-label">Classes</span>
+    </div>
+
+    <div class="widget">
+      <div class="ring-wrap">
+        <svg class="ring" viewBox="0 0 36 36" aria-hidden="true">
+          <circle class="ring-bg" cx="18" cy="18" r="15.9" />
+          <circle class="ring-fill warm" id="ring-next" cx="18" cy="18" r="15.9" />
+        </svg>
+        <span class="ring-value small" id="w-next">—</span>
+      </div>
+      <span class="widget-label">Next</span>
+    </div>
+  </section>
+
+  <!-- Shown only when there is nothing at all in the app yet, so a new or
+       empty install explains itself instead of looking broken. -->
+  <p id="today-empty" class="empty" hidden>
+    No classes yet.<br />
+    Add them in the <strong>Schedule</strong> tab, or use <strong>Schedule → Import</strong>
+    to load a backup file.
+  </p>
+
+  <!-- The timeline itself. Hours down the left, blocks positioned by time. -->
+  <section class="timeline-wrap">
+    <div class="timeline" id="timeline">
+      <div class="hour-grid" id="hour-grid"></div>
+      <div class="blocks-layer" id="blocks-layer"></div>
+      <!-- The moving "now" line -->
+      <div class="now-line" id="now-line" hidden>
+        <span class="now-dot"></span>
+        <span class="now-time" id="now-time"></span>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ============================================================
+     VIEW 2 — TASKS: priority list, ranked by the algorithm
+     ============================================================ -->
+<main id="view-tasks" class="view" hidden>
+  <form id="task-form" class="card form" autocomplete="off">
+    <input type="text" id="task-title" placeholder="What needs doing?" required maxlength="120" />
+
+    <!-- Priority is a segmented control rather than a dropdown: one tap. -->
+    <div class="segmented" role="radiogroup" aria-label="Priority">
+      <button type="button" class="seg low"    data-priority="low"    role="radio" aria-checked="false">Low</button>
+      <button type="button" class="seg medium is-active" data-priority="medium" role="radio" aria-checked="true">Medium</button>
+      <button type="button" class="seg high"   data-priority="high"   role="radio" aria-checked="false">High</button>
+    </div>
+
+    <div class="row">
+      <input type="date" id="task-date" required />
+      <input type="time" id="task-time" required />
+    </div>
+
+    <button type="submit" class="primary-btn">Add task</button>
+  </form>
+
+  <!-- Tasks are grouped into urgency buckets by the ranking algorithm. -->
+  <section id="task-groups" class="task-groups"></section>
+
+  <p id="tasks-empty" class="empty" hidden>No tasks yet. Add one above.</p>
+</main>
+
+<!-- ============================================================
+     VIEW 3 — SCHEDULE: recurring weekly classes + data tools
+     ============================================================ -->
+<main id="view-schedule" class="view" hidden>
+  <form id="class-form" class="card form" autocomplete="off">
+    <h2 class="card-title">Add a class</h2>
+
+    <input type="text" id="class-title" placeholder="Class name" required maxlength="80" />
+    <input type="text" id="class-location" placeholder="Room / location (optional)" maxlength="60" />
+
+    <!-- Day-of-week toggles: a class can repeat on several days. -->
+    <div class="daypicker" id="daypicker" role="group" aria-label="Repeats on">
+      <button type="button" data-day="1">M</button>
+      <button type="button" data-day="2">T</button>
+      <button type="button" data-day="3">W</button>
+      <button type="button" data-day="4">T</button>
+      <button type="button" data-day="5">F</button>
+      <button type="button" data-day="6">S</button>
+      <button type="button" data-day="0">S</button>
+    </div>
+
+    <div class="row">
+      <label class="field">Starts <input type="time" id="class-start" required /></label>
+      <label class="field">Ends <input type="time" id="class-end" required /></label>
+    </div>
+
+    <!-- Colour chips so classes are distinguishable at a glance -->
+    <div class="swatches" id="class-swatches" role="group" aria-label="Colour"></div>
+
+    <button type="submit" class="primary-btn">Add class</button>
+  </form>
+
+  <section class="card">
+    <h2 class="card-title">Your weekly classes</h2>
+    <ul id="class-list" class="class-list"></ul>
+    <p id="classes-empty" class="empty" hidden>No classes yet.</p>
+  </section>
+
+  <section class="card">
+    <h2 class="card-title">Day window</h2>
+    <p class="sub">How much of the day the timeline shows.</p>
+    <div class="row">
+      <label class="field">From <input type="time" id="day-start-input" /></label>
+      <label class="field">To <input type="time" id="day-end-input" /></label>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2 class="card-title">Backup</h2>
+    <p class="sub">Your data lives only on this device. Export to keep a copy.</p>
+    <div class="row">
+      <button type="button" id="export-btn" class="secondary-btn">Export</button>
+      <button type="button" id="import-btn" class="secondary-btn">Import</button>
+      <input type="file" id="import-file" accept="application/json" hidden />
+    </div>
+    <button type="button" id="notify-btn" class="secondary-btn wide" hidden>Turn on reminders</button>
+  </section>
+</main>
+
+<!-- ============================================================
+     Bottom tab bar
+     ============================================================ -->
+<nav class="tabbar">
+  <button type="button" class="tab is-active" data-view="today">
+    <span class="tab-icon">◷</span><span>Today</span>
+  </button>
+  <button type="button" class="tab" data-view="tasks">
+    <span class="tab-icon">◆</span><span>Tasks</span>
+    <span class="tab-badge" id="tab-badge" hidden></span>
+  </button>
+  <button type="button" class="tab" data-view="schedule">
+    <span class="tab-icon">▤</span><span>Schedule</span>
+  </button>
+</nav>
+
+<!-- Slide-up sheet used when you tap an empty gap in the timeline -->
+<div class="sheet-backdrop" id="sheet-backdrop" hidden></div>
+<div class="sheet" id="gap-sheet" hidden role="dialog" aria-label="Fill this gap">
+  <div class="sheet-handle"></div>
+  <h2 class="card-title" id="gap-heading">Fill this gap</h2>
+  <form id="gap-form" class="form" autocomplete="off">
+    <input type="text" id="gap-title" placeholder="What goes here?" required maxlength="80" />
+    <div class="row">
+      <label class="field">From <input type="time" id="gap-start" required /></label>
+      <label class="field">To <input type="time" id="gap-end" required /></label>
+    </div>
+    <div class="swatches" id="gap-swatches" role="group" aria-label="Colour"></div>
+    <div class="row">
+      <button type="button" id="gap-cancel" class="secondary-btn">Cancel</button>
+      <button type="submit" class="primary-btn">Add block</button>
+    </div>
+  </form>
+</div>
+
+<!-- Brief messages ("Saved", "Imported") float in here -->
+<div class="toast" id="toast" hidden></div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

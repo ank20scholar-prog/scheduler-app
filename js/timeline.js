@@ -1,0 +1,341 @@
+/* timeline.js — draws the day view and keeps it moving.
+ *
+ * Two jobs:
+ *   1. renderDay()  — lay out the hour grid, the scheduled blocks, and the
+ *                     dashed gaps, once, whenever the day or the data changes.
+ *   2. tick()       — called every second. Moves the "now" line, updates the
+ *                     character's state, and refreshes the progress bars.
+ *
+ * Everything is positioned by converting a time into minutes-since-midnight
+ * and multiplying by PX_PER_MIN. That one conversion is the whole layout.
+ */
+
+import {
+  state, entriesForDate, gapsForDate,
+  toMinutes, fmt12, nowMinutes, toISODate, humanDuration
+} from './store.js';
+
+// How tall one minute is on screen. 1.1px/min makes a 16-hour day ~1050px,
+// which scrolls comfortably on a phone without feeling cramped.
+const PX_PER_MIN = 1.1;
+
+const el = {
+  timeline:   document.getElementById('timeline'),
+  hourGrid:   document.getElementById('hour-grid'),
+  blocks:     document.getElementById('blocks-layer'),
+  nowLine:    document.getElementById('now-line'),
+  nowTime:    document.getElementById('now-time'),
+  stage:      document.getElementById('stage'),
+  status:     document.getElementById('stage-status'),
+  detail:     document.getElementById('stage-detail'),
+  blockProg:  document.getElementById('block-progress'),
+  blockFill:  document.getElementById('block-progress-fill'),
+  dayFill:    document.getElementById('day-progress-fill'),
+  dayLeft:    document.getElementById('day-remaining'),
+  clock:      document.getElementById('live-clock'),
+
+  // The three dials
+  ringDay:     document.getElementById('ring-day'),
+  ringClasses: document.getElementById('ring-classes'),
+  ringNext:    document.getElementById('ring-next'),
+  wDay:        document.getElementById('w-day'),
+  wClasses:    document.getElementById('w-classes'),
+  wNext:       document.getElementById('w-next')
+};
+
+// The rings have a circumference of ~100, so the dash offset is 100 - percent.
+function setRing(circle, percent) {
+  circle.style.strokeDashoffset = String(100 - Math.max(0, Math.min(100, percent)));
+}
+
+// Convert a time to a vertical offset in pixels from the top of the timeline.
+function yFor(minutes) {
+  return (minutes - toMinutes(state.settings.dayStart)) * PX_PER_MIN;
+}
+
+/* ------------------------------------------------------------
+   1. Full redraw
+   ------------------------------------------------------------ */
+
+export function renderDay(isoDate, onGapTap, onBlockTap) {
+  const dayStart = toMinutes(state.settings.dayStart);
+  const dayEnd = toMinutes(state.settings.dayEnd);
+
+  // Set the container height so absolutely-positioned children have room.
+  el.timeline.style.setProperty('--tl-height', `${(dayEnd - dayStart) * PX_PER_MIN}px`);
+
+  renderHourGrid(dayStart, dayEnd);
+  renderBlocks(isoDate, onBlockTap);
+  renderGaps(isoDate, onGapTap);
+
+  tick(isoDate);
+}
+
+// One faint rule and label per hour.
+function renderHourGrid(dayStart, dayEnd) {
+  el.hourGrid.innerHTML = '';
+
+  // Start at the first whole hour at or after the day start.
+  const firstHour = Math.ceil(dayStart / 60);
+  const lastHour = Math.floor(dayEnd / 60);
+
+  for (let h = firstHour; h <= lastHour; h++) {
+    const row = document.createElement('div');
+    row.className = 'hour-row';
+    row.style.top = `${yFor(h * 60)}px`;
+
+    const label = document.createElement('span');
+    label.className = 'hour-label';
+    // 13 -> "1 PM". Midnight and noon read as 12.
+    const period = h >= 12 ? 'PM' : 'AM';
+    const hour12 = h % 12 === 0 ? 12 : h % 12;
+    label.textContent = `${hour12} ${period}`;
+
+    const rule = document.createElement('span');
+    rule.className = 'hour-rule';
+
+    row.append(label, rule);
+    el.hourGrid.appendChild(row);
+  }
+}
+
+// Classes and custom blocks, positioned and sized by their start/end times.
+function renderBlocks(isoDate, onBlockTap) {
+  el.blocks.innerHTML = '';
+
+  const dayStart = toMinutes(state.settings.dayStart);
+  const dayEnd = toMinutes(state.settings.dayEnd);
+  const entries = entriesForDate(isoDate);
+
+  entries.forEach((entry, index) => {
+    const start = toMinutes(entry.start);
+    const end = toMinutes(entry.end);
+
+    // Skip anything wholly outside the visible window.
+    if (end <= dayStart || start >= dayEnd) return;
+
+    // Clamp so a block that runs past the window still draws neatly.
+    const top = yFor(Math.max(start, dayStart));
+    const height = (Math.min(end, dayEnd) - Math.max(start, dayStart)) * PX_PER_MIN;
+
+    const div = document.createElement('div');
+    div.className = 'block';
+    div.dataset.id = entry.id;
+    div.dataset.kind = entry.kind;
+    div.style.top = `${top}px`;
+    div.style.height = `${Math.max(height, 22)}px`;   // keep short blocks tappable
+    div.style.setProperty('--blk', entry.color || 'var(--accent)');
+    // Stagger the entrance animation slightly so blocks cascade in.
+    div.style.animationDelay = `${Math.min(index * 40, 300)}ms`;
+
+    const title = document.createElement('div');
+    title.className = 'block-title';
+    title.textContent = entry.title;
+
+    div.appendChild(title);
+
+    // Only show the time range if the block is tall enough to fit it.
+    if (height > 40) {
+      const meta = document.createElement('div');
+      meta.className = 'block-meta';
+      meta.textContent = `${fmt12(entry.start)} – ${fmt12(entry.end)}` +
+                         (entry.location ? ` · ${entry.location}` : '');
+      div.appendChild(meta);
+    }
+
+    div.addEventListener('click', () => onBlockTap(entry));
+    el.blocks.appendChild(div);
+  });
+}
+
+// The empty stretches, drawn as dashed outlines you can tap to fill.
+function renderGaps(isoDate, onGapTap) {
+  const gaps = gapsForDate(isoDate);
+
+  for (const gap of gaps) {
+    const start = toMinutes(gap.start);
+    const end = toMinutes(gap.end);
+    const height = (end - start) * PX_PER_MIN;
+
+    const div = document.createElement('div');
+    div.className = 'gap';
+    div.style.top = `${yFor(start)}px`;
+    div.style.height = `${height}px`;
+
+    // Only label gaps with room for text; small ones stay clean and empty.
+    if (height > 34) {
+      const span = document.createElement('span');
+      span.textContent = `+ ${humanDuration(end - start)} free`;
+      div.appendChild(span);
+    }
+
+    div.addEventListener('click', () => onGapTap(gap));
+    el.blocks.appendChild(div);
+  }
+}
+
+/* ------------------------------------------------------------
+   2. The per-second update
+   ------------------------------------------------------------ */
+
+export function tick(isoDate) {
+  const now = new Date();
+  const mins = nowMinutes();
+  const isToday = isoDate === toISODate(now);
+
+  const dayStart = toMinutes(state.settings.dayStart);
+  const dayEnd = toMinutes(state.settings.dayEnd);
+
+  // Live clock in the header, always the real current time.
+  el.clock.textContent = now.toLocaleTimeString(undefined, {
+    hour: 'numeric', minute: '2-digit'
+  });
+
+  // How far through the day window we are.
+  const dayPct = Math.min(100, Math.max(0, ((mins - dayStart) / (dayEnd - dayStart)) * 100));
+  el.dayFill.style.width = `${dayPct}%`;
+  el.dayLeft.textContent = mins < dayEnd && mins > dayStart
+    ? `${humanDuration(dayEnd - mins)} left`
+    : '';
+
+  // The now-line only makes sense on today, inside the window.
+  const showLine = isToday && mins >= dayStart && mins <= dayEnd;
+  el.nowLine.hidden = !showLine;
+  if (showLine) {
+    el.nowLine.style.top = `${yFor(mins)}px`;
+    el.nowTime.textContent = now.toLocaleTimeString(undefined, {
+      hour: 'numeric', minute: '2-digit'
+    });
+  }
+
+  updateStage(isoDate, mins, isToday);
+  markCurrentBlock(isoDate, mins, isToday);
+  updateWidgets(isoDate, mins, isToday);
+}
+
+/* The three dials under the character.
+     Day     — how far through the day window you are
+     Classes — how many of today's classes are finished
+     Next    — countdown to whatever is coming up
+   On a day that is not today, live values would be meaningless, so they show
+   that day's totals instead of a fake countdown. */
+function updateWidgets(isoDate, mins, isToday) {
+  const entries = entriesForDate(isoDate);
+  const dayStart = toMinutes(state.settings.dayStart);
+  const dayEnd = toMinutes(state.settings.dayEnd);
+
+  // --- Day ---
+  const dayPct = isToday
+    ? Math.min(100, Math.max(0, ((mins - dayStart) / (dayEnd - dayStart)) * 100))
+    : 0;
+  setRing(el.ringDay, dayPct);
+  el.wDay.textContent = isToday ? `${Math.round(dayPct)}%` : '—';
+
+  // --- Classes done ---
+  const total = entries.length;
+  const done = isToday ? entries.filter((e) => mins >= toMinutes(e.end)).length : 0;
+  setRing(el.ringClasses, total ? (done / total) * 100 : 0);
+  el.wClasses.textContent = `${done}/${total}`;
+
+  // --- Next ---
+  const current = entries.find((e) => mins >= toMinutes(e.start) && mins < toMinutes(e.end));
+  const next = entries.find((e) => toMinutes(e.start) > mins);
+
+  if (isToday && current) {
+    // Mid-class: the ring tracks progress through it.
+    const start = toMinutes(current.start);
+    const end = toMinutes(current.end);
+    setRing(el.ringNext, ((mins - start) / (end - start)) * 100);
+    el.wNext.textContent = humanDuration(end - mins);
+  } else if (isToday && next) {
+    // Waiting: the ring fills as the next class approaches, over a 3-hour
+    // runway, so it is nearly empty when something is hours away and full
+    // just before it starts.
+    const until = toMinutes(next.start) - mins;
+    setRing(el.ringNext, Math.max(0, 100 - (until / 180) * 100));
+    el.wNext.textContent = humanDuration(until);
+  } else if (!isToday && entries.length) {
+    setRing(el.ringNext, 0);
+    el.wNext.textContent = fmt12(entries[0].start);
+  } else {
+    setRing(el.ringNext, 0);
+    el.wNext.textContent = '—';
+  }
+}
+
+/* Decide what the little character is doing, and what the status text says. */
+function updateStage(isoDate, mins, isToday) {
+  const entries = entriesForDate(isoDate);
+  const dayStart = toMinutes(state.settings.dayStart);
+  const dayEnd = toMinutes(state.settings.dayEnd);
+
+  // Looking at another day: describe it rather than pretending it is live.
+  if (!isToday) {
+    setStage('state-busy',
+      `${entries.length} ${entries.length === 1 ? 'thing' : 'things'} scheduled`,
+      entries.length ? `Starting ${fmt12(entries[0].start)}` : 'Nothing planned yet');
+    el.blockProg.hidden = true;
+    return;
+  }
+
+  const current = entries.find(
+    (e) => mins >= toMinutes(e.start) && mins < toMinutes(e.end)
+  );
+
+  if (current) {
+    const start = toMinutes(current.start);
+    const end = toMinutes(current.end);
+    const pct = ((mins - start) / (end - start)) * 100;
+
+    setStage(
+      current.kind === 'class' ? 'state-class' : 'state-busy',
+      current.title,
+      `${humanDuration(end - mins)} left · ends ${fmt12(current.end)}`
+    );
+
+    el.blockProg.hidden = false;
+    el.blockFill.style.width = `${pct}%`;
+    return;
+  }
+
+  el.blockProg.hidden = true;
+
+  // Outside the day window entirely — asleep.
+  if (mins < dayStart || mins > dayEnd) {
+    setStage('state-night', 'Off the clock', 'Nothing scheduled right now');
+    return;
+  }
+
+  // Free: say what is coming, and how long the break is.
+  const next = entries.find((e) => toMinutes(e.start) > mins);
+  setStage(
+    'state-free',
+    'Free time',
+    next
+      ? `${humanDuration(toMinutes(next.start) - mins)} until ${next.title}`
+      : 'Nothing else scheduled today'
+  );
+}
+
+// Swap the state class on the stage, which is what drives the CSS animations.
+function setStage(stateClass, status, detail) {
+  el.stage.className = `stage ${stateClass}`;
+  el.status.textContent = status;
+  el.detail.textContent = detail;
+}
+
+// Highlight the block happening now; fade the ones already finished.
+function markCurrentBlock(isoDate, mins, isToday) {
+  const entries = entriesForDate(isoDate);
+
+  for (const div of el.blocks.querySelectorAll('.block')) {
+    const entry = entries.find((e) => e.id === div.dataset.id);
+    if (!entry) continue;
+
+    const start = toMinutes(entry.start);
+    const end = toMinutes(entry.end);
+
+    div.classList.toggle('is-now', isToday && mins >= start && mins < end);
+    div.classList.toggle('is-past', isToday && mins >= end);
+  }
+}

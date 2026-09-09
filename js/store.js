@@ -35,7 +35,8 @@ export const state = {
   tasks: [],
   settings: {
     dayStart: '07:00',   // top of the timeline
-    dayEnd: '23:00'      // bottom of the timeline
+    dayEnd: '23:00',     // bottom of the timeline
+    autoSleep: true      // generate sleep + get-ready blocks from the first class
   }
 };
 
@@ -144,14 +145,18 @@ function cleanTask(raw) {
 
 // Only the two known settings, both validated, and never merged in bulk.
 function cleanSettings(raw) {
-  const fallback = { dayStart: '07:00', dayEnd: '23:00' };
+  const fallback = { dayStart: '07:00', dayEnd: '23:00', autoSleep: true };
   if (!raw || typeof raw !== 'object') return fallback;
+
+  // Default to on when absent, so older backups gain the feature rather than
+  // silently having it switched off.
+  const autoSleep = raw.autoSleep !== false;
 
   const dayStart = cleanTime(raw.dayStart) || fallback.dayStart;
   const dayEnd = cleanTime(raw.dayEnd) || fallback.dayEnd;
 
-  if (toMinutes(dayEnd) <= toMinutes(dayStart)) return fallback;
-  return { dayStart, dayEnd };
+  if (toMinutes(dayEnd) <= toMinutes(dayStart)) return { ...fallback, autoSleep };
+  return { dayStart, dayEnd, autoSleep };
 }
 
 /* Turn an untrusted parsed object into a safe, complete state object.
@@ -275,10 +280,11 @@ export function humanDuration(mins) {
 // Reading the schedule for one particular day
 // ------------------------------------------------------------
 
-/* Returns every entry on a given date — recurring classes whose weekday
-   matches, plus one-off blocks saved against that exact date — sorted by
-   start time. This is what the timeline draws. */
-export function entriesForDate(isoDate) {
+/* Everything actually scheduled on a date: recurring classes whose weekday
+   matches, plus one-off blocks saved against that exact date. Sorted by start.
+   This deliberately excludes the generated sleep/get-ready blocks, because
+   those are derived FROM it — including them would be circular. */
+export function scheduledEntriesForDate(isoDate) {
   const weekday = fromISODate(isoDate).getDay();
 
   const classes = state.classes
@@ -294,14 +300,122 @@ export function entriesForDate(isoDate) {
   );
 }
 
+// ------------------------------------------------------------
+// Generated sleep and get-ready blocks
+// ------------------------------------------------------------
+
+/* These are computed, never stored. They follow two rules:
+ *
+ *   wake   = first class of the day  −  75 minutes
+ *   bedtime = wake  −  7 hours
+ *
+ * Because they are derived, they update automatically when the schedule
+ * changes and cannot drift out of sync with it. They are also not editable —
+ * changing your first class is what changes them.
+ */
+export const AUTO = {
+  readyMinutes: 75,    // awake this long before the first class
+  sleepMinutes: 420,   // 7 hours
+  sleepColor: '#8e93a6',
+  readyColor: '#d9954f'
+};
+
+// Start time of the first real thing scheduled on a date, in minutes, or null.
+function firstScheduledStart(isoDate) {
+  const entries = scheduledEntriesForDate(isoDate);
+  return entries.length ? toMinutes(entries[0].start) : null;
+}
+
+function autoEntry(type, isoDate, startMin, endMin) {
+  const sleep = type === 'sleep';
+  return {
+    // Stable id so re-renders match the same element.
+    id: `auto-${type}-${isoDate}-${startMin}`,
+    title: sleep ? 'Sleep' : 'Get ready',
+    location: '',
+    start: toHHMM(startMin),
+    end: toHHMM(endMin),
+    color: sleep ? AUTO.sleepColor : AUTO.readyColor,
+    kind: 'auto',
+    auto: type          // 'sleep' | 'ready' — drives the character state
+  };
+}
+
+/* The generated blocks that fall on this calendar day.
+ *
+ * Sleep usually starts after midnight (a 9:30 class means bed at 1:15 AM), so
+ * it sits on the same day as the wake-up. But an early first class pushes
+ * bedtime before midnight, in which case the sleep splits: the tail belongs to
+ * the previous evening. Both halves are handled here so the block is never
+ * silently dropped. */
+export function autoEntriesForDate(isoDate) {
+  if (!state.settings.autoSleep) return [];
+
+  const out = [];
+
+  // --- Today's own wake-up, and the sleep leading into it ---
+  const firstToday = firstScheduledStart(isoDate);
+  if (firstToday !== null) {
+    const wake = firstToday - AUTO.readyMinutes;
+    const bed = wake - AUTO.sleepMinutes;
+
+    if (wake > 0) {
+      out.push(autoEntry('ready', isoDate, wake, firstToday));
+      // Clipped at midnight; anything earlier is on the previous evening.
+      const segmentStart = Math.max(0, bed);
+      if (wake > segmentStart) out.push(autoEntry('sleep', isoDate, segmentStart, wake));
+    }
+  }
+
+  // --- The evening portion of the sleep that ends tomorrow morning ---
+  const firstTomorrow = firstScheduledStart(addDays(isoDate, 1));
+  if (firstTomorrow !== null) {
+    const wakeTomorrow = firstTomorrow - AUTO.readyMinutes;
+    const bedTomorrow = wakeTomorrow - AUTO.sleepMinutes;
+
+    if (bedTomorrow < 0) {
+      // e.g. bedtime of −30 means 23:30 the night before.
+      out.push(autoEntry('sleep', isoDate, 1440 + bedTomorrow, 1439));
+    }
+  }
+
+  return out;
+}
+
+/* Everything the timeline draws: real entries plus generated ones. */
+export function entriesForDate(isoDate) {
+  return [...scheduledEntriesForDate(isoDate), ...autoEntriesForDate(isoDate)]
+    .sort((a, b) => toMinutes(a.start) - toMinutes(b.start));
+}
+
+/* The visible time range for a date.
+ *
+ * Starts from the configured day window, then stretches to fit anything that
+ * falls outside it — otherwise a 1:15 AM bedtime would be computed, placed,
+ * and then be invisible because the window starts at 08:00. Rounded out to
+ * whole hours so the hour grid stays tidy. */
+export function windowForDate(isoDate) {
+  let start = toMinutes(state.settings.dayStart);
+  let end = toMinutes(state.settings.dayEnd);
+
+  for (const entry of entriesForDate(isoDate)) {
+    start = Math.min(start, toMinutes(entry.start));
+    end = Math.max(end, toMinutes(entry.end));
+  }
+
+  return {
+    start: Math.floor(start / 60) * 60,
+    end: Math.min(1440, Math.ceil(end / 60) * 60)
+  };
+}
+
 /* Finds the stretches of empty time between entries, within the day window.
    These become the dashed, tappable gaps on the timeline.
    Gaps shorter than `minGap` are ignored — a 5-minute sliver is not worth
    drawing or filling. */
 export function gapsForDate(isoDate, minGap = 20) {
   const entries = entriesForDate(isoDate);
-  const dayStart = toMinutes(state.settings.dayStart);
-  const dayEnd = toMinutes(state.settings.dayEnd);
+  const { start: dayStart, end: dayEnd } = windowForDate(isoDate);
 
   const gaps = [];
   let cursor = dayStart;

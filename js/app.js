@@ -7,7 +7,8 @@
 
 import {
   state, load, save, id, COLORS, sanitize, applyState,
-  toISODate, fromISODate, addDays, fmt12, toMinutes, toHHMM
+  toISODate, fromISODate, addDays, fmt12, toMinutes, toHHMM,
+  entriesForDate, autoEntriesForDate
 } from './store.js';
 import { renderDay, tick } from './timeline.js';
 import { renderTasks } from './tasks.js';
@@ -34,6 +35,7 @@ function refresh() {
   renderDay(selectedDate, openGapSheet, handleBlockTap);
   renderTasks(toggleTask, deleteTask, justChangedTask);
   renderClassList();
+  renderSleepSummary();
   scheduleReminders();
 
   // An app with no data at all should say so, rather than showing an empty
@@ -353,6 +355,12 @@ $('#gap-form').addEventListener('submit', (e) => {
 
 // Tapping an existing block.
 function handleBlockTap(entry) {
+  if (entry.kind === 'auto') {
+    toast(entry.auto === 'sleep'
+      ? 'Bedtime is calculated from your first class — 7 hours before waking'
+      : 'Wake-up is 1h 15m before your first class');
+    return;
+  }
   if (entry.kind === 'class') {
     toast('Edit recurring classes in the Schedule tab');
     return;
@@ -391,6 +399,33 @@ function buildSwatches(container, onPick, initial) {
 // ============================================================
 // Day window settings
 // ============================================================
+function wireAutoSleep() {
+  const toggle = $('#auto-sleep-toggle');
+  toggle.checked = state.settings.autoSleep !== false;
+
+  toggle.addEventListener('change', () => {
+    state.settings.autoSleep = toggle.checked;
+    save();
+    refresh();
+    toast(toggle.checked ? 'Sleep blocks on' : 'Sleep blocks off');
+  });
+}
+
+/* Plain-English summary of what the rule works out to for the day on screen,
+   so the calculation is visible rather than something that just appears. */
+function renderSleepSummary() {
+  const line = $('#sleep-summary');
+  if (!state.settings.autoSleep) { line.textContent = ''; return; }
+
+  const generated = autoEntriesForDate(selectedDate);
+  const sleep = generated.find((e) => e.auto === 'sleep');
+  const ready = generated.find((e) => e.auto === 'ready');
+
+  line.textContent = ready
+    ? `For ${$('#day-label').textContent.toLowerCase()}: bed ${sleep ? fmt12(sleep.start) : '—'}, up ${fmt12(ready.start)}.`
+    : 'Nothing scheduled that day, so no sleep block is generated.';
+}
+
 function wireDayWindow() {
   const startInput = $('#day-start-input');
   const endInput = $('#day-end-input');
@@ -660,6 +695,7 @@ async function init() {
   buildSwatches($('#class-swatches'), (c) => { draftClassColor = c; }, draftClassColor);
   buildSwatches($('#gap-swatches'), (c) => { draftGapColor = c; }, draftGapColor);
   wireDayWindow();
+  wireAutoSleep();
   wireNotifications();
 
   // Default the task form to today, an hour from now, rounded.

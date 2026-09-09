@@ -257,6 +257,15 @@ h1, h2, .card-title, .stage-status {
   50%     { transform: translateY(-3px) rotate(1.6deg); }
 }
 
+/* Getting ready: awake but not in class yet — a stretch, then a wave. */
+.stage.state-ready .ch-arm { animation: stretch 2.4s ease-in-out infinite; }
+.stage.state-ready .ch-body { animation: bob 2.2s ease-in-out infinite; }
+@keyframes stretch {
+  0%, 100% { transform: rotate(0deg); }
+  35%      { transform: rotate(-38deg) translateY(-3px); }
+  70%      { transform: rotate(-20deg); }
+}
+
 /* Night / outside the day window: sleeping */
 .stage.state-night .ch-zzz { opacity: 1; }
 .stage.state-night .ch-body { animation: bob 5.5s ease-in-out infinite; }
@@ -407,6 +416,18 @@ h1, h2, .card-title, .stage-status {
    but NOT enough to look disabled or greyed out. It was .45, which made the
    whole day look switched off once the last class had passed. */
 .block.is-past { opacity: .82; }
+
+/* Generated sleep / get-ready blocks are advisory rather than committed, so
+   they sit visually behind the real ones: dashed edge, lighter fill. */
+.block[data-kind="auto"] {
+  border-style: dashed;
+  border-left-style: solid;
+  background: color-mix(in srgb, var(--blk) 10%, var(--surface));
+}
+@media (prefers-color-scheme: dark) {
+  .block[data-kind="auto"] { background: color-mix(in srgb, var(--blk) 18%, var(--surface)); }
+}
+.block[data-kind="auto"] .block-title { font-weight: 500; }
 .block.is-past .block-title { text-decoration: line-through; text-decoration-thickness: 1px; }
 
 .gap {
@@ -814,3 +835,22 @@ input::placeholder { color: var(--text-faint); }
   .gap:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
   .widget:hover { transform: translateY(-2px); }
 }
+
+/* ---------- Toggle row (settings) ---------- */
+.toggle-row {
+  display: flex; align-items: flex-start; gap: 11px;
+  cursor: pointer;
+  font-size: .88rem;
+  color: var(--text);
+}
+.toggle-row input[type="checkbox"] {
+  width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.toggle-row > span { display: flex; flex-direction: column; gap: 2px; }
+.toggle-row strong { font-weight: 600; }
+
+/* Small explanatory line under a settings control. Defined here rather than
+   as an inline style attribute, which our own CSP correctly blocks. */
+.note { margin-top: 8px; }

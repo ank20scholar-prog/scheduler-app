@@ -11,7 +11,7 @@
  */
 
 import {
-  state, entriesForDate, gapsForDate,
+  state, entriesForDate, scheduledEntriesForDate, gapsForDate, windowForDate,
   toMinutes, fmt12, nowMinutes, toISODate, humanDuration
 } from './store.js';
 
@@ -48,9 +48,14 @@ function setRing(circle, percent) {
   circle.style.strokeDashoffset = String(100 - Math.max(0, Math.min(100, percent)));
 }
 
+/* The window currently being drawn. Set at the top of every renderDay() and
+   tick(), because it varies by date — a day with an early class has an earlier
+   bedtime and therefore an earlier window start. */
+let win = { start: 0, end: 1440 };
+
 // Convert a time to a vertical offset in pixels from the top of the timeline.
 function yFor(minutes) {
-  return (minutes - toMinutes(state.settings.dayStart)) * PX_PER_MIN;
+  return (minutes - win.start) * PX_PER_MIN;
 }
 
 /* ------------------------------------------------------------
@@ -58,8 +63,9 @@ function yFor(minutes) {
    ------------------------------------------------------------ */
 
 export function renderDay(isoDate, onGapTap, onBlockTap) {
-  const dayStart = toMinutes(state.settings.dayStart);
-  const dayEnd = toMinutes(state.settings.dayEnd);
+  win = windowForDate(isoDate);
+  const dayStart = win.start;
+  const dayEnd = win.end;
 
   // Set the container height so absolutely-positioned children have room.
   el.timeline.style.setProperty('--tl-height', `${(dayEnd - dayStart) * PX_PER_MIN}px`);
@@ -103,8 +109,8 @@ function renderHourGrid(dayStart, dayEnd) {
 function renderBlocks(isoDate, onBlockTap) {
   el.blocks.innerHTML = '';
 
-  const dayStart = toMinutes(state.settings.dayStart);
-  const dayEnd = toMinutes(state.settings.dayEnd);
+  const dayStart = win.start;
+  const dayEnd = win.end;
   const entries = entriesForDate(isoDate);
 
   entries.forEach((entry, index) => {
@@ -183,8 +189,9 @@ export function tick(isoDate) {
   const mins = nowMinutes();
   const isToday = isoDate === toISODate(now);
 
-  const dayStart = toMinutes(state.settings.dayStart);
-  const dayEnd = toMinutes(state.settings.dayEnd);
+  win = windowForDate(isoDate);
+  const dayStart = win.start;
+  const dayEnd = win.end;
 
   // Live clock in the header, always the real current time.
   el.clock.textContent = now.toLocaleTimeString(undefined, {
@@ -221,8 +228,8 @@ export function tick(isoDate) {
    that day's totals instead of a fake countdown. */
 function updateWidgets(isoDate, mins, isToday) {
   const entries = entriesForDate(isoDate);
-  const dayStart = toMinutes(state.settings.dayStart);
-  const dayEnd = toMinutes(state.settings.dayEnd);
+  const dayStart = win.start;
+  const dayEnd = win.end;
 
   // --- Day ---
   const dayPct = isToday
@@ -231,9 +238,11 @@ function updateWidgets(isoDate, mins, isToday) {
   setRing(el.ringDay, dayPct);
   el.wDay.textContent = isToday ? `${Math.round(dayPct)}%` : '—';
 
-  // --- Classes done ---
-  const total = entries.length;
-  const done = isToday ? entries.filter((e) => mins >= toMinutes(e.end)).length : 0;
+  // --- Classes done --- (real classes only; generated sleep/ready blocks
+  // are not things you "complete")
+  const realClasses = scheduledEntriesForDate(isoDate).filter((e) => e.kind === 'class');
+  const total = realClasses.length;
+  const done = isToday ? realClasses.filter((e) => mins >= toMinutes(e.end)).length : 0;
   setRing(el.ringClasses, total ? (done / total) * 100 : 0);
   el.wClasses.textContent = `${done}/${total}`;
 
@@ -266,8 +275,8 @@ function updateWidgets(isoDate, mins, isToday) {
 /* Decide what the little character is doing, and what the status text says. */
 function updateStage(isoDate, mins, isToday) {
   const entries = entriesForDate(isoDate);
-  const dayStart = toMinutes(state.settings.dayStart);
-  const dayEnd = toMinutes(state.settings.dayEnd);
+  const dayStart = win.start;
+  const dayEnd = win.end;
 
   // Looking at another day: describe it rather than pretending it is live.
   if (!isToday) {
@@ -287,11 +296,16 @@ function updateStage(isoDate, mins, isToday) {
     const end = toMinutes(current.end);
     const pct = ((mins - start) / (end - start)) * 100;
 
-    setStage(
-      current.kind === 'class' ? 'state-class' : 'state-busy',
-      current.title,
-      `${humanDuration(end - mins)} left · ends ${fmt12(current.end)}`
-    );
+    let stateClass = 'state-busy';
+    if (current.kind === 'class') stateClass = 'state-class';
+    else if (current.auto === 'sleep') stateClass = 'state-night';
+    else if (current.auto === 'ready') stateClass = 'state-ready';
+
+    const detail = current.auto === 'sleep'
+      ? `Until ${fmt12(current.end)} · ${humanDuration(end - mins)} more`
+      : `${humanDuration(end - mins)} left · ends ${fmt12(current.end)}`;
+
+    setStage(stateClass, current.title, detail);
 
     el.blockProg.hidden = false;
     el.blockFill.style.width = `${pct}%`;

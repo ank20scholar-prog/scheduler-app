@@ -15,6 +15,7 @@ import {
   continuationForDate, addDays, fromISODate,
   toMinutes, fmt12, nowMinutes, toISODate, humanDuration
 } from './store.js';
+import { buildSleeper, buildBrusher, buildSubjectFigure, kindOf } from './figures.js';
 
 // How tall one minute is on screen. 1.1px/min makes a 16-hour day ~1050px,
 // which scrolls comfortably on a phone without feeling cramped.
@@ -193,10 +194,7 @@ function renderContinuation(isoDate, onBlockTap) {
       div.appendChild(meta);
     }
 
-    if (entry.auto === 'sleep' && height > 120) {
-      div.classList.add('is-sleep');
-      div.appendChild(buildSleeper());
-    }
+    addFigure(div, entry, height);
 
     div.addEventListener('click', () => onBlockTap(entry));
     el.blocks.appendChild(div);
@@ -268,14 +266,7 @@ function renderBlocks(isoDate, onBlockTap) {
 
     div.appendChild(title);
 
-    /* Sleep is the one generated block that should be unmissable rather than
-       quiet — it is the anchor the rest of the day hangs off. Given a 7-hour
-       block is several hundred pixels tall, there is room for a proper
-       sleeping figure inside it. */
-    if (entry.auto === 'sleep' && height > 120) {
-      div.classList.add('is-sleep');
-      div.appendChild(buildSleeper());
-    }
+    addFigure(div, entry, height);
 
     // Only show the time range if the block is tall enough to fit it.
     if (height > 40) {
@@ -291,46 +282,38 @@ function renderBlocks(isoDate, onBlockTap) {
   });
 }
 
-/* The sleeping figure that sits inside the Sleep block: a person under a
-   duvet, breathing, with Zzz drifting up. Built in code rather than written
-   into index.html because it is created per-day alongside the block. */
-function buildSleeper() {
-  const NS = 'http://www.w3.org/2000/svg';
-  const svg = document.createElementNS(NS, 'svg');
-  svg.setAttribute('class', 'sleeper');
-  svg.setAttribute('viewBox', '0 0 200 90');
-  svg.setAttribute('aria-hidden', 'true');
+/* Give a block its animated figure, if it is tall enough to hold one.
+ *
+ * The height guards matter: a 50-minute class is only ~55px tall, and a figure
+ * crammed into that is unreadable clutter rather than character. Short blocks
+ * simply go without.
+ *
+ *   Sleep      the anchor of the day, and always hours long
+ *   Get ready  75 minutes, so a smaller scene
+ *   Classes    a figure matched to the subject
+ */
+function addFigure(div, entry, height) {
+  if (entry.auto === 'sleep') {
+    if (height > 120) {
+      div.classList.add('is-sleep');
+      div.appendChild(buildSleeper());
+    }
+    return;
+  }
 
-  svg.innerHTML = `
-    <ellipse class="sleeper-shadow" cx="100" cy="79" rx="66" ry="5" />
+  if (entry.auto === 'ready') {
+    if (height > 70) div.appendChild(buildBrusher());
+    return;
+  }
 
-    <!-- pillow -->
-    <rect class="sleeper-pillow" x="40" y="46" width="40" height="22" rx="9" />
-
-    <g class="sleeper-body">
-      <!-- head -->
-      <circle class="sleeper-head" cx="66" cy="50" r="15" />
-      <!-- hair -->
-      <path class="sleeper-hair" d="M52 46 Q54 34 66 34 Q78 34 80 46 Q73 39 66 40 Q58 40 52 46 Z" />
-      <!-- closed eyes, drawn as gentle curves -->
-      <path class="sleeper-eye" d="M59 50 q3 3 6 0" />
-      <path class="sleeper-eye" d="M69 50 q3 3 6 0" />
-      <!-- duvet, rising and falling with the breath -->
-      <path class="sleeper-duvet" d="M78 68 Q78 50 104 50 L150 50 Q166 50 166 68 Z" />
-      <path class="sleeper-duvet-edge" d="M78 60 Q120 54 166 60" />
-    </g>
-
-    <!-- bed base -->
-    <rect class="sleeper-bed" x="36" y="68" width="134" height="7" rx="3.5" />
-
-    <g class="sleeper-zzz">
-      <text x="92" y="30" class="sleeper-z z1">z</text>
-      <text x="106" y="20" class="sleeper-z z2">z</text>
-      <text x="120" y="11" class="sleeper-z z3">z</text>
-    </g>
-  `;
-
-  return svg;
+  if (entry.kind === 'class' && height > 46) {
+    const figure = buildSubjectFigure(entry.title, kindOf(entry.title));
+    /* Most classes here are 50 minutes, which is only ~55px tall. Excluding
+       them left the majority of the timeline figure-less, so short blocks get
+       a scaled-down version instead of nothing. */
+    if (height < 95) figure.classList.add('fig-compact');
+    div.appendChild(figure);
+  }
 }
 
 // The empty stretches, drawn as dashed outlines you can tap to fill.

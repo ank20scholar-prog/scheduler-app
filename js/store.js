@@ -316,7 +316,10 @@ export function scheduledEntriesForDate(isoDate) {
 export const AUTO = {
   readyMinutes: 75,    // awake this long before the first class
   sleepMinutes: 420,   // 7 hours
-  sleepColor: '#8e93a6',
+  /* Dusk indigo. The previous flat slate-grey (#8e93a6) had no presence — the
+     block read as background rather than as the anchor of the day. This still
+     sits in the app's family but is unmistakably "night". */
+  sleepColor: '#6b6099',
   readyColor: '#d9954f'
 };
 

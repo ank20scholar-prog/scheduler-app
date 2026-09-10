@@ -1,0 +1,290 @@
+/* ============================================================
+   figures.css — the animated people inside timeline blocks.
+
+   Kept separate from styles.css because it is a self-contained system: three
+   families of figure (sleeping, getting ready, in class) that share placement
+   rules and a visual grammar but nothing else.
+
+   Everything animates in CSS. The SVG shapes are built in js/figures.js.
+   ============================================================ */
+
+/* ---------- Shared placement ---------- */
+.sleeper, .brusher, .class-figure {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  height: auto;
+  pointer-events: none;
+}
+.sleeper      { width: min(250px, 66%); opacity: .97; }
+.brusher      { width: min(132px, 44%); opacity: .95; }
+.class-figure { width: min(120px, 40%); opacity: .82; }
+
+/* A 50-minute class is only about 55px tall. The figure shrinks to fit rather
+   than being dropped, so short blocks still carry their subject. */
+.class-figure.fig-compact { width: 70px; opacity: .72; right: 8px; }
+
+/* ============================================================
+   SLEEP — the block with the most visual weight on the timeline
+   ============================================================ */
+.block.is-sleep {
+  border-style: solid;
+  border-width: 1px 1px 1px 6px;
+  background:
+    radial-gradient(120% 90% at 85% 30%,
+      color-mix(in srgb, var(--blk) 34%, transparent), transparent 70%),
+    linear-gradient(165deg,
+      color-mix(in srgb, var(--blk) 30%, var(--surface)),
+      color-mix(in srgb, var(--blk) 14%, var(--surface)));
+}
+@media (prefers-color-scheme: dark) {
+  .block.is-sleep {
+    background:
+      radial-gradient(120% 90% at 85% 30%,
+        color-mix(in srgb, var(--blk) 46%, transparent), transparent 70%),
+      linear-gradient(165deg,
+        color-mix(in srgb, var(--blk) 46%, var(--surface)),
+        color-mix(in srgb, var(--blk) 24%, var(--surface)));
+  }
+}
+
+.block.is-sleep .block-title {
+  font-family: var(--font-serif);
+  font-size: 1.55rem;
+  font-weight: 700;
+  letter-spacing: -.015em;
+  color: color-mix(in srgb, var(--blk) 45%, var(--text));
+}
+.block.is-sleep .block-meta { font-size: .84rem; font-weight: 600; }
+
+/* ---------- The sleeping figure ---------- */
+.sl-headboard, .sl-bed, .sl-leg { fill: color-mix(in srgb, var(--blk) 45%, var(--text-faint)); }
+.sl-mattress   { fill: var(--bg-elev); }
+.sl-pillow     { fill: var(--bg-elev); stroke: color-mix(in srgb, var(--blk) 25%, transparent); stroke-width: 1.2; }
+.sl-duvet      { fill: var(--blk); opacity: .9; }
+.sl-duvet-fold { fill: none; stroke: var(--bg-elev); stroke-width: 2.6; opacity: .55; }
+.sl-shoulder   { fill: color-mix(in srgb, var(--blk) 70%, #ffffff); }
+.sl-head       { fill: #e8c4a8; }
+.sl-hair       { fill: #4a3f38; }
+.sl-eye        { fill: none; stroke: #33291f; stroke-width: 1.9; stroke-linecap: round; }
+.sl-mouth      { fill: #6b4a3a; opacity: .5; }
+.sl-z          { fill: color-mix(in srgb, var(--blk) 55%, var(--text)); font-family: var(--font-sans); font-weight: 800; }
+.sl-z.a { font-size: 13px; }
+.sl-z.b { font-size: 17px; }
+.sl-z.c { font-size: 22px; }
+
+/* The breath lives on the duvet and shoulder, not the whole figure. Scaling
+   everything made it look like a picture zooming rather than someone
+   breathing — this is the single biggest thing that sells it. */
+.sl-duvet      { animation: sleepBreathe 5s ease-in-out infinite; transform-origin: 160px 76px; }
+.sl-shoulder   { animation: sleepBreathe 5s ease-in-out infinite; transform-origin: 104px 60px; }
+.sl-head-group { animation: sleepHead 5s ease-in-out infinite; transform-origin: 70px 66px; }
+
+@keyframes sleepBreathe {
+  0%, 100% { transform: scaleY(1); }
+  45%      { transform: scaleY(1.055); }
+}
+@keyframes sleepHead {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  45%      { transform: translateY(-1px) rotate(-1deg); }
+}
+
+.sl-z { animation: sleepZ 5.4s ease-in-out infinite; opacity: 0; }
+.sl-z.b { animation-delay: 1.6s; }
+.sl-z.c { animation-delay: 3.2s; }
+@keyframes sleepZ {
+  0%   { opacity: 0; transform: translate(0, 10px) scale(.6) rotate(-8deg); }
+  25%  { opacity: .85; }
+  100% { opacity: 0; transform: translate(16px, -20px) scale(1.25) rotate(8deg); }
+}
+
+/* ============================================================
+   GET READY — brushing teeth
+   ============================================================ */
+.br-mirror    { fill: var(--bg-elev); stroke: var(--border); stroke-width: 2; }
+.br-glint     { stroke: var(--surface-2); stroke-width: 4; stroke-linecap: round; }
+.br-sink      { fill: var(--bg-elev); stroke: var(--border); stroke-width: 1.4; }
+.br-pedestal  { fill: var(--bg-elev); stroke: var(--border); stroke-width: 1.4; }
+.br-tap       { fill: var(--text-faint); }
+.br-tap-spout { fill: none; stroke: var(--text-faint); stroke-width: 4; stroke-linecap: round; }
+.br-torso     { fill: var(--blk); }
+.br-head      { fill: #e8c4a8; }
+.br-hair      { fill: #4a3f38; }
+.br-eye       { fill: #33291f; }
+.br-mouth     { fill: #7d4b46; }
+.br-limb      { fill: none; stroke: var(--blk); stroke-width: 7; stroke-linecap: round; }
+.br-hand      { fill: #e8c4a8; }
+.br-brush-handle { fill: var(--accent); }
+.br-brush-head   { fill: var(--bg-elev); stroke: var(--border); stroke-width: .8; }
+.br-bubble       { fill: var(--bg-elev); stroke: var(--border); stroke-width: .7; }
+
+/* Fast, short, side to side — with the head bobbing against the scrub. */
+.br-arm { animation: brush .5s ease-in-out infinite; transform-origin: 96px 70px; }
+@keyframes brush {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  50%      { transform: translateX(7px) rotate(6deg); }
+}
+.br-head-group { animation: brushHead .5s ease-in-out infinite; transform-origin: 112px 60px; }
+@keyframes brushHead {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  50%      { transform: translateX(-1.5px) rotate(-1.2deg); }
+}
+.br-bubble { animation: foam 2.4s ease-in-out infinite; opacity: 0; }
+.br-bubble.f2 { animation-delay: .7s; }
+.br-bubble.f3 { animation-delay: 1.4s; }
+@keyframes foam {
+  0%   { opacity: 0; transform: translate(0,0) scale(.4); }
+  35%  { opacity: .95; }
+  100% { opacity: 0; transform: translate(9px,-11px) scale(1.15); }
+}
+
+/* ============================================================
+   CLASS SUBJECTS
+   Shared parts first so mixed subjects still read as one world.
+   ============================================================ */
+.fg-bench, .fg-desk, .fg-tray { fill: color-mix(in srgb, var(--blk) 55%, var(--text-faint)); }
+.fg-board, .fg-canvas, .fg-screen, .fg-paper { fill: var(--bg-elev); }
+.fg-line, .fg-eq { stroke: var(--text-faint); stroke-width: 3; stroke-linecap: round; }
+
+/* Used by several subjects: a stroke that draws itself in, holds, then fades. */
+@keyframes writeIn {
+  0%   { stroke-dashoffset: 60; opacity: 0; }
+  12%  { opacity: 1; }
+  35%  { stroke-dashoffset: 0; }
+  80%  { stroke-dashoffset: 0; opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+
+/* ---------- Chemistry ---------- */
+.fg-flask  { fill: none; stroke: var(--blk); stroke-width: 3.4; stroke-linejoin: round; }
+.fg-liquid { fill: var(--blk); opacity: .55; }
+.fg-neck   { fill: var(--blk); }
+.fg-tube   { fill: var(--blk); opacity: .35; }
+.fg-bubble { fill: var(--bg-elev); }
+.fg-bubbles circle { animation: rise 2s ease-in infinite; opacity: 0; }
+.fg-bubble.b2 { animation-delay: .6s; }
+.fg-bubble.b3 { animation-delay: 1.2s; }
+@keyframes rise {
+  0%   { opacity: 0; transform: translateY(0) scale(.5); }
+  30%  { opacity: .9; }
+  100% { opacity: 0; transform: translateY(-16px) scale(1.1); }
+}
+.fg-vapour {
+  fill: none; stroke: var(--blk); stroke-width: 2.2; stroke-linecap: round; opacity: .4;
+  animation: curl 3.4s ease-in-out infinite; transform-origin: 58px 20px;
+}
+@keyframes curl {
+  0%, 100% { opacity: .25; transform: translateY(0) scaleY(1); }
+  50%      { opacity: .6;  transform: translateY(-3px) scaleY(1.12); }
+}
+
+/* ---------- Physics: a pendulum that eases at the extremes ---------- */
+.fg-frame, .fg-post { fill: color-mix(in srgb, var(--blk) 60%, var(--text-faint)); }
+.fg-string { stroke: var(--text-dim); stroke-width: 2; }
+.fg-bob    { fill: var(--blk); }
+.fg-arc    { fill: none; stroke: var(--blk); stroke-width: 1.6; stroke-dasharray: 3 5; opacity: .35; }
+.fg-pendulum { animation: swing 2.2s cubic-bezier(.45,0,.55,1) infinite; transform-origin: 61px 18px; }
+@keyframes swing {
+  0%, 100% { transform: rotate(21deg); }
+  50%      { transform: rotate(-21deg); }
+}
+
+/* ---------- Biology ---------- */
+.fg-scope-base, .fg-scope-body, .fg-eyepiece { fill: var(--blk); }
+.fg-scope-stage, .fg-slide { fill: color-mix(in srgb, var(--blk) 40%, var(--bg-elev)); }
+.fg-cell { fill: var(--blk); opacity: .75; }
+.fg-scope-arm { animation: focusScope 4s ease-in-out infinite; transform-origin: 72px 58px; }
+@keyframes focusScope {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(2.5px); }
+}
+.fg-cells circle { animation: driftCell 5s ease-in-out infinite; }
+.fg-cell.c2 { animation-delay: .8s; }
+.fg-cell.c3 { animation-delay: 1.7s; }
+@keyframes driftCell {
+  0%, 100% { transform: translate(0,0); }
+  50%      { transform: translate(3px,-1.5px); }
+}
+
+/* ---------- Maths: equations write themselves ---------- */
+.fg-eq { stroke: var(--blk); stroke-width: 3.4; stroke-dasharray: 60; }
+.fg-eq.e1 { animation: writeIn 6s ease-in-out infinite; }
+.fg-eq.e2 { animation: writeIn 6s ease-in-out infinite 1.2s; }
+.fg-eq.e3 { animation: writeIn 6s ease-in-out infinite 2.4s; }
+.fg-marker { fill: var(--accent); animation: markerMove 6s ease-in-out infinite; }
+@keyframes markerMove {
+  0%, 100% { transform: translate(0,0); }
+  33%      { transform: translate(-46px,-24px); }
+  66%      { transform: translate(-30px,-10px); }
+}
+.fg-sum { fill: none; stroke: var(--blk); stroke-width: 3; opacity: .5; }
+
+/* ---------- Computing ---------- */
+.fg-lid, .fg-keyboard { fill: var(--blk); }
+.fg-code .fg-line { stroke: color-mix(in srgb, var(--blk) 70%, var(--text-faint)); stroke-dasharray: 50; }
+.fg-code .fg-line.l1 { animation: writeIn 5s ease-in-out infinite; }
+.fg-code .fg-line.l2 { animation: writeIn 5s ease-in-out infinite .9s; }
+.fg-code .fg-line.l3 { animation: writeIn 5s ease-in-out infinite 1.8s; }
+.fg-cursor { fill: var(--accent); animation: blinkCursor 1.1s steps(1) infinite; }
+@keyframes blinkCursor { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+
+/* ---------- Business ---------- */
+.fg-bar { fill: var(--blk); transform-origin: center bottom; opacity: .8; }
+.fg-bar.b1 { animation: grow 4s ease-in-out infinite; }
+.fg-bar.b2 { animation: grow 4s ease-in-out infinite .25s; }
+.fg-bar.b3 { animation: grow 4s ease-in-out infinite .5s; }
+.fg-bar.b4 { animation: grow 4s ease-in-out infinite .75s; }
+@keyframes grow {
+  0%, 100% { transform: scaleY(.45); }
+  50%      { transform: scaleY(1); }
+}
+.fg-trend {
+  fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round;
+  stroke-dasharray: 130; animation: writeIn 4s ease-in-out infinite;
+}
+.fg-trend-dot { fill: var(--accent); animation: pulseDot 4s ease-in-out infinite; }
+@keyframes pulseDot {
+  0%, 60%, 100% { transform: scale(1); opacity: .6; }
+  75%           { transform: scale(1.5); opacity: 1; }
+}
+
+/* ---------- Humanities: a page turning ---------- */
+.fg-book-l, .fg-book-r { fill: var(--bg-elev); stroke: var(--blk); stroke-width: 2.4; }
+.fg-page { fill: var(--surface-2); animation: turnPage 5s ease-in-out infinite; transform-origin: 64px 56px; }
+@keyframes turnPage {
+  0%, 55% { transform: scaleX(1); opacity: .95; }
+  75%     { transform: scaleX(-.7); opacity: .6; }
+  100%    { transform: scaleX(1); opacity: .95; }
+}
+
+/* ---------- Arts ---------- */
+.fg-easel { fill: none; stroke: color-mix(in srgb, var(--blk) 60%, var(--text-faint)); stroke-width: 4; stroke-linecap: round; }
+.fg-canvas { stroke: var(--border); stroke-width: 1.5; }
+.fg-stroke { fill: none; stroke: var(--blk); stroke-width: 4.5; stroke-linecap: round; stroke-dasharray: 45; }
+.fg-stroke.s1 { animation: writeIn 5s ease-in-out infinite; }
+.fg-stroke.s2 { animation: writeIn 5s ease-in-out infinite 1.4s; }
+.fg-brush-handle { fill: var(--accent); }
+.fg-brush-tip    { fill: var(--blk); }
+.fg-brush { animation: dab 1.6s ease-in-out infinite; transform-origin: 102px 50px; }
+@keyframes dab {
+  0%, 100% { transform: translate(0,0) rotate(0deg); }
+  50%      { transform: translate(-9px,6px) rotate(-12deg); }
+}
+
+/* ---------- Generic study ---------- */
+.fg-pen-body { fill: var(--accent); }
+.fg-pen-tip  { fill: var(--blk); }
+.fg-pen { animation: writeMove 2.6s ease-in-out infinite; transform-origin: 88px 50px; }
+@keyframes writeMove {
+  0%, 100% { transform: translate(0,0) rotate(0deg); }
+  50%      { transform: translate(-30px,10px) rotate(-8deg); }
+}
+.fg-paper { stroke: var(--border); stroke-width: 1.4; }
+
+/* Labs are busier than lectures and discussions sit between: same artwork,
+   different tempo, so the timeline has some rhythm to it. */
+.class-figure[data-kind="LAB"] * { animation-duration: 1.1s; }
+.class-figure[data-kind="DIS"] * { animation-duration: 3.2s; }
+
+/* Reduce Motion is honoured globally in styles.css, which stops all of these. */

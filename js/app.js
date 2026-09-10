@@ -14,6 +14,7 @@ import { renderDay, tick, scrollToNow } from './timeline.js';
 import { renderTasks } from './tasks.js';
 import { rankTasks } from './priority.js';
 import { showMap, refreshMap, initMapModule } from './map.js';
+import { resolveUnknownSubjects } from './figures.js';
 
 // ------------------------------------------------------------
 // Transient UI state (not saved — it resets when the app restarts)
@@ -768,6 +769,14 @@ async function init() {
   soon.setHours(soon.getHours() + 1, 0, 0, 0);
   $('#task-date').value = toISODate(soon);
   $('#task-time').value = toHHMM(soon.getHours() * 60);
+
+  /* Check any unfamiliar course codes against UMD's course data so their
+     blocks get the right subject figure. Runs in the background and re-renders
+     only if it actually learned something — a failure is silent and the class
+     just keeps the generic studying figure. */
+  resolveUnknownSubjects(state.classes.map((c) => c.title))
+    .then((learned) => { if (learned) refresh(); })
+    .catch(() => {});
 
   refresh();
   // Let layout settle before measuring where "now" is.

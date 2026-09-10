@@ -33,6 +33,12 @@ export const state = {
   classes: [],
   blocks: [],
   tasks: [],
+  /* attendance — what you actually attended, keyed by date then class id:
+       { '2026-09-10': { 'abcd123-lec': 'present', 'wxyz456-lab': 'absent' } }
+     Nested by date because that is how it is written (a day at a time) and how
+     the calendar reads it. Absent entries are what the catch-up list is built
+     from. */
+  attendance: {},
   settings: {
     dayStart: '07:00',   // top of the timeline
     dayEnd: '23:00',     // bottom of the timeline
@@ -171,8 +177,32 @@ export function sanitize(parsed) {
     classes: list(parsed?.classes, cleanClass),
     blocks: list(parsed?.blocks, cleanBlock),
     tasks: list(parsed?.tasks, cleanTask),
+    attendance: cleanAttendance(parsed?.attendance),
     settings: cleanSettings(parsed?.settings)
   };
+}
+
+/* Attendance, rebuilt key by key.
+   Same whitelist rule as everything else: dates must look like dates, class
+   ids like ids, and the only permitted marks are 'present' and 'absent'.
+   Built on a null-prototype object so a "__proto__" key in a hostile file is
+   an ordinary entry rather than a prototype write. */
+const MARKS = new Set(['present', 'absent']);
+
+function cleanAttendance(raw) {
+  const out = Object.create(null);
+  if (!raw || typeof raw !== 'object') return out;
+
+  for (const [date, marks] of Object.entries(raw).slice(0, MAX_RECORDS)) {
+    if (!RE_DATE.test(date) || !marks || typeof marks !== 'object') continue;
+
+    const day = Object.create(null);
+    for (const [classId, mark] of Object.entries(marks)) {
+      if (RE_ID.test(classId) && MARKS.has(mark)) day[classId] = mark;
+    }
+    if (Object.keys(day).length) out[date] = day;
+  }
+  return out;
 }
 
 /* Replace the live state with a sanitised copy, field by field.
@@ -182,6 +212,7 @@ export function applyState(clean) {
   state.classes = clean.classes;
   state.blocks = clean.blocks;
   state.tasks = clean.tasks;
+  state.attendance = clean.attendance || Object.create(null);
   state.settings = clean.settings;
 }
 
@@ -529,4 +560,80 @@ export function decodeTransfer(encoded) {
       autoSleep: payload.s?.[2] !== 0
     }
   };
+}
+
+// ------------------------------------------------------------
+// Attendance
+// ------------------------------------------------------------
+
+/* Mark a class present or absent on a date. Passing the same mark again clears
+   it, so tapping "Present" twice returns the class to unmarked rather than
+   leaving you no way back. */
+export function markAttendance(isoDate, classId, mark) {
+  if (!state.attendance[isoDate]) state.attendance[isoDate] = Object.create(null);
+
+  const day = state.attendance[isoDate];
+
+  if (day[classId] === mark) delete day[classId];
+  else day[classId] = mark;
+
+  if (!Object.keys(day).length) delete state.attendance[isoDate];
+  save();
+}
+
+export function attendanceFor(isoDate, classId) {
+  return state.attendance[isoDate]?.[classId] || null;
+}
+
+/* Per-course totals across every date, plus the specific dates missed.
+   The dates are the point: "missed 3" is a statistic, "missed 3, here they
+   are" is something you can actually catch up on. */
+export function attendanceStats() {
+  const stats = new Map();
+
+  for (const cls of state.classes) {
+    stats.set(cls.id, { cls, present: 0, absent: 0, missedDates: [] });
+  }
+
+  for (const [date, marks] of Object.entries(state.attendance)) {
+    for (const [classId, mark] of Object.entries(marks)) {
+      const row = stats.get(classId);
+      if (!row) continue;                    // class was deleted since
+      if (mark === 'present') row.present += 1;
+      else { row.absent += 1; row.missedDates.push(date); }
+    }
+  }
+
+  for (const row of stats.values()) row.missedDates.sort().reverse();
+  return [...stats.values()].sort((a, b) => b.absent - a.absent);
+}
+
+/* Days in a month that have classes, for painting the calendar grid.
+   Returns a Map of ISO date -> { total, present, absent, unmarked }. */
+export function monthSummary(year, month) {
+  const summary = new Map();
+  const days = new Date(year, month + 1, 0).getDate();
+  const today = toISODate(new Date());
+
+  for (let d = 1; d <= days; d++) {
+    const iso = toISODate(new Date(year, month, d));
+    const classes = scheduledEntriesForDate(iso).filter((e) => e.kind === 'class');
+    if (!classes.length) continue;
+
+    let present = 0, absent = 0;
+    for (const cls of classes) {
+      const mark = attendanceFor(iso, cls.id);
+      if (mark === 'present') present += 1;
+      else if (mark === 'absent') absent += 1;
+    }
+
+    summary.set(iso, {
+      total: classes.length,
+      present,
+      absent,
+      // Only count something as needing a mark once the day has actually been.
+      unmarked: iso <= today ? classes.length - present - absent : 0
+    });
+  }
+  return summary;
 }

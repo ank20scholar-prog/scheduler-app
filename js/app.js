@@ -15,6 +15,7 @@ import { renderTasks } from './tasks.js';
 import { rankTasks } from './priority.js';
 import { showMap, refreshMap, initMapModule } from './map.js';
 import { resolveUnknownSubjects } from './figures.js';
+import { initCalendar, renderCalendar, focusCalendarOn } from './calendar.js';
 
 // ------------------------------------------------------------
 // Transient UI state (not saved — it resets when the app restarts)
@@ -38,6 +39,7 @@ function refresh() {
   renderTasks(toggleTask, deleteTask, justChangedTask);
   renderClassList();
   renderSleepSummary();
+  renderCalendar();
   refreshMap();
   scheduleReminders();
 
@@ -72,10 +74,11 @@ document.querySelectorAll('.tab').forEach((tab) => {
     document.querySelectorAll('.tab').forEach((t) => t.classList.remove('is-active'));
     tab.classList.add('is-active');
 
-    for (const view of ['today', 'tasks', 'map', 'schedule']) {
+    for (const view of ['today', 'tasks', 'map', 'calendar', 'schedule']) {
       $(`#view-${view}`).hidden = view !== tab.dataset.view;
     }
     if (tab.dataset.view === 'map') showMap(selectedDate);
+    if (tab.dataset.view === 'calendar') focusCalendarOn(selectedDate);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 });
@@ -761,6 +764,7 @@ async function init() {
   buildSwatches($('#class-swatches'), (c) => { draftClassColor = c; }, draftClassColor);
   buildSwatches($('#gap-swatches'), (c) => { draftGapColor = c; }, draftGapColor);
   wireAutoSleep();
+  initCalendar(refresh);
   wireNotifications();
   initMapModule();
 

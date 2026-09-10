@@ -685,16 +685,20 @@ input::placeholder { color: var(--text-faint); }
   -webkit-backdrop-filter: blur(16px);
   border-top: 1px solid var(--border);
 }
+/* Five tabs on a 375px phone means ~75px each, so labels and icons tighten. */
 .tab {
   flex: 1;
+  min-width: 0;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
   background: none; border: none; cursor: pointer;
   color: var(--text-faint);
-  font-size: .66rem; font-family: inherit; font-weight: 600;
+  font-size: .6rem; font-family: inherit; font-weight: 600;
   position: relative;
+  padding: 0 2px;
   transition: color .2s var(--ease);
 }
-.tab-icon { font-size: 1.15rem; transition: transform .28s var(--ease); }
+.tab-icon { font-size: 1.05rem; transition: transform .28s var(--ease); }
+.tab > span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .tab.is-active { color: var(--accent); }
 .tab.is-active .tab-icon { transform: translateY(-2px) scale(1.14); }
 

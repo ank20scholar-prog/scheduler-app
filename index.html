@@ -47,6 +47,7 @@
   <link rel="stylesheet" href="vendor/leaflet.css" />
   <link rel="stylesheet" href="css/styles.css" />
   <link rel="stylesheet" href="css/figures.css" />
+  <link rel="stylesheet" href="css/calendar.css" />
 </head>
 <body>
 
@@ -374,6 +375,41 @@
   <p class="sub map-credit">Map data &copy; OpenStreetMap contributors. Dining data refreshed from OpenStreetMap.</p>
 </main>
 
+
+<!-- ============================================================
+     VIEW 5 — CALENDAR: attendance, and what to catch up on
+     ============================================================ -->
+<main id="view-calendar" class="view" hidden>
+
+  <section class="card">
+    <div class="cal-header">
+      <button type="button" id="cal-prev" class="ghost-btn" aria-label="Previous month">&#8249;</button>
+      <h2 class="card-title" id="cal-month">Month</h2>
+      <button type="button" id="cal-next" class="ghost-btn" aria-label="Next month">&#8250;</button>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+    <div class="cal-legend">
+      <span><span class="cal-dot is-present"></span> Present</span>
+      <span><span class="cal-dot is-absent"></span> Absent</span>
+      <span><span class="cal-dot is-none"></span> Not marked</span>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2 class="card-title" id="cal-day-title">Day</h2>
+    <div id="cal-day-list"></div>
+    <p class="empty" id="cal-day-empty" hidden>No classes that day.</p>
+  </section>
+
+  <section class="card">
+    <h2 class="card-title">Attendance by course</h2>
+    <div id="cal-stats"></div>
+    <p class="empty" id="cal-stats-empty" hidden>
+      Nothing marked yet. Tap a day above and mark yourself present or absent.
+    </p>
+  </section>
+</main>
+
 <!-- ============================================================
      Bottom tab bar
      ============================================================ -->
@@ -387,6 +423,9 @@
   </button>
   <button type="button" class="tab" data-view="map">
     <span class="tab-icon">◎</span><span>Map</span>
+  </button>
+  <button type="button" class="tab" data-view="calendar">
+    <span class="tab-icon">▦</span><span>Calendar</span>
   </button>
   <button type="button" class="tab" data-view="schedule">
     <span class="tab-icon">▤</span><span>Schedule</span>

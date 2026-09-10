@@ -1,0 +1,146 @@
+/* ============================================================
+   calendar.css — month grid, attendance marking, per-course totals
+   ============================================================ */
+
+.cal-header {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 12px;
+}
+.cal-header .card-title { flex: 1; text-align: center; margin: 0; }
+.cal-header .ghost-btn { width: 32px; height: 32px; font-size: 1rem; }
+
+/* ---------- The month grid ---------- */
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.cal-weekday {
+  text-align: center;
+  font-size: .62rem; font-weight: 700;
+  letter-spacing: .06em;
+  color: var(--text-faint);
+  padding-bottom: 4px;
+}
+
+.cal-cell {
+  aspect-ratio: 1;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 3px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-dim);
+  font-family: inherit;
+  cursor: pointer;
+  padding: 2px;
+  transition: background .18s var(--ease), border-color .18s var(--ease), transform .14s var(--ease);
+}
+.cal-cell.is-blank { pointer-events: none; }
+.cal-cell:active { transform: scale(.92); }
+
+.cal-num { font-size: .8rem; font-variant-numeric: tabular-nums; line-height: 1; }
+
+/* Days that actually have classes get weight; empty days stay quiet. */
+.cal-cell.has-classes { background: var(--surface-2); color: var(--text); font-weight: 600; }
+
+/* A past day with classes you never marked — the thing to go back and fill in. */
+.cal-cell.is-unmarked { border-color: color-mix(in srgb, var(--med) 55%, transparent); }
+
+.cal-cell.is-today { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+.cal-cell.is-selected { background: var(--accent); color: #fff; border-color: var(--accent); }
+.cal-cell.is-selected .cal-num { color: #fff; }
+
+/* One dot per class on that day. */
+.cal-dots { display: flex; gap: 2px; flex-wrap: wrap; justify-content: center; max-width: 100%; }
+.cal-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--text-faint);
+  flex-shrink: 0;
+}
+.cal-dot.is-present { background: var(--low); }
+.cal-dot.is-absent  { background: var(--hi); }
+.cal-dot.is-none    { background: transparent; border: 1px solid var(--text-faint); }
+.cal-cell.is-selected .cal-dot.is-none { border-color: rgba(255,255,255,.7); }
+
+.cal-legend {
+  display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;
+  margin-top: 12px;
+  font-size: .68rem; color: var(--text-dim);
+}
+.cal-legend span { display: inline-flex; align-items: center; gap: 5px; }
+
+/* ---------- Marking a day ---------- */
+.cal-class {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px;
+  margin-bottom: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--blk, var(--accent));
+  border-radius: var(--radius-sm);
+}
+.cal-class-main { flex: 1; min-width: 0; }
+.cal-class-name { font-size: .88rem; font-weight: 600; }
+.cal-class-when { font-size: .72rem; color: var(--text-dim); }
+
+.cal-marks { display: flex; gap: 6px; flex-shrink: 0; }
+.mark-btn {
+  padding: 7px 10px;
+  font-size: .74rem; font-weight: 600; font-family: inherit;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: transform .14s var(--ease), background .18s var(--ease), color .18s var(--ease);
+}
+.mark-btn:active { transform: scale(.92); }
+.mark-btn.is-present.is-on {
+  background: color-mix(in srgb, var(--low) 22%, transparent);
+  border-color: var(--low); color: var(--low);
+}
+.mark-btn.is-absent.is-on {
+  background: color-mix(in srgb, var(--hi) 18%, transparent);
+  border-color: var(--hi); color: var(--hi);
+}
+
+/* ---------- Per-course totals ---------- */
+.stat-row {
+  padding: 11px 0;
+  border-bottom: 1px solid var(--border-soft);
+}
+.stat-row:last-child { border-bottom: none; }
+
+.stat-head { display: flex; align-items: baseline; gap: 8px; }
+.stat-name { flex: 1; font-size: .86rem; font-weight: 600; }
+.stat-figure { font-size: .86rem; font-weight: 700; color: var(--low); font-variant-numeric: tabular-nums; }
+.stat-figure.is-low { color: var(--hi); }
+
+.stat-bar {
+  height: 6px; margin: 7px 0 5px;
+  background: var(--surface-2);
+  border-radius: 3px; overflow: hidden;
+}
+.stat-fill {
+  height: 100%;
+  background: var(--blk, var(--accent));
+  border-radius: 3px;
+  transition: width .5s var(--ease);
+}
+
+.stat-detail { font-size: .72rem; color: var(--text-dim); }
+
+/* ---------- Desktop: grid and detail side by side ---------- */
+@media (min-width: 900px) {
+  #view-calendar {
+    display: grid;
+    grid-template-columns: 420px minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+    padding: 16px 20px 0;
+  }
+  #view-calendar .card { margin: 0 0 20px; }
+  #view-calendar .card:first-child { grid-row: 1 / span 2; }
+}

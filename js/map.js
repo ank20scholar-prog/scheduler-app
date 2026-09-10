@@ -6,13 +6,15 @@
  * Privacy choices worth knowing, since this is the only part of the app that
  * touches the network or your location:
  *
- *   • Your GPS position never leaves the device. There is no routing API call.
- *     Distances are computed locally (see campus.js) and drawn as direct lines.
- *   • Location is only requested when you actually open this tab, never on
- *     app start.
- *   • The only external requests are map tile images from OpenStreetMap. Those
- *     reveal roughly which part of the map you are looking at — unavoidable for
- *     any real map — and nothing else.
+ *   • Your GPS position stays on the device by default. Distances, the food
+ *     ranking and the straight-line route are all computed locally.
+ *   • Walking directions call a public router, but with BUILDING coordinates —
+ *     public campus locations. Routing from your own position is opt-in, behind
+ *     a checkbox that says exactly what it sends.
+ *   • Location is only requested when you open this tab, never on app start.
+ *   • The basemap is vector tiles from OpenFreeMap. Tile requests reveal roughly
+ *     which area you are looking at — unavoidable for any real map — and
+ *     nothing else.
  *   • Dining data is read from our own origin, refreshed by a scheduled job
  *     rather than fetched from a third party by your browser.
  */
@@ -69,16 +71,33 @@ export function showMap(isoDate) {
       attributionControl: false
     });
 
-    /* Standard OpenStreetMap tiles.
-       I tried CARTO's Positron basemap first because it is a much quieter
-       style out of the box — but their tile servers now return
-       "API KEY REQUIRED" watermarks, so it is not usable without an account.
-       OSM's own tiles need no key and will not stop working, so the styling is
-       done here instead, with a filter tuned in css/styles.css. */
-    tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap'
+    /* Vector basemap, not raster tiles.
+       Two earlier attempts failed for instructive reasons: standard OSM raster
+       tiles are busy and saturated and no CSS filter makes them look designed,
+       and CARTO's Positron — which is exactly the right style — now returns
+       "API KEY REQUIRED" watermarks. OpenFreeMap serves the genuine Positron
+       and Dark Matter styles free with no key and no signup.
+
+       Vector means real dark mode instead of an inverted light map, and crisp
+       labels at every zoom instead of stretched bitmaps. MapLibre renders it;
+       the Leaflet bridge means every marker, popup and route below this line
+       keeps working unchanged. */
+    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const styleFor = (isDark) =>
+      `https://tiles.openfreemap.org/styles/${isDark ? 'dark' : 'positron'}`;
+
+    tiles = L.maplibreGL({
+      style: styleFor(dark),
+      attribution: '&copy; OpenStreetMap, &copy; OpenFreeMap'
     }).addTo(map);
+
+    // Correct the canvas whenever the container's box actually changes.
+    watchMapSize();
+
+    // Follow the system theme live rather than only at load.
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+      try { tiles.getMaplibreMap().setStyle(styleFor(e.matches)); } catch { /* not ready */ }
+    });
 
     layers = L.layerGroup().addTo(map);
     bindWalkerToMap();   // must happen after the map exists
@@ -86,13 +105,51 @@ export function showMap(isoDate) {
     loadDining();
   }
 
-  // The container was hidden until now, so Leaflet has stale dimensions.
-  setTimeout(() => map.invalidateSize(), 60);
+  /* The container was hidden until now, so both renderers have stale
+     dimensions — and they need telling separately.
+
+     invalidateSize() fixes Leaflet's own layers, but the MapLibre canvas
+     underneath is a different renderer with its own idea of its size. Without
+     its resize() the basemap draws at 0x0 and you get pins floating on blank
+     grey, which is exactly what happened when this was Leaflet-only code. */
+  setTimeout(() => {
+    map.invalidateSize();
+    resizeBasemap();
+  }, 60);
+
   drawRoute();
 }
 
 export function refreshMap() {
   if (map) drawRoute();
+}
+
+/* Tell the MapLibre renderer its container changed size.
+ *
+ * This is needed because the map is built while its tab is still hidden, so
+ * the GL canvas starts at zero and stays there — pins floating on blank grey —
+ * until something tells it otherwise.
+ *
+ * A ResizeObserver rather than a timeout, so it also corrects itself on
+ * rotation and when crossing the desktop breakpoint, instead of guessing at a
+ * delay that works on one device.
+ *
+ * Note the GL layer is intentionally LARGER than the map container (the bridge
+ * pads it so panning never exposes an unpainted edge). That size mismatch is
+ * by design, not a bug to chase. */
+function resizeBasemap() {
+  if (!tiles) return;
+  try { tiles.getMaplibreMap().resize(); } catch { /* style still loading */ }
+}
+
+function watchMapSize() {
+  if (!window.ResizeObserver) return;
+
+  const observer = new ResizeObserver(() => {
+    map?.invalidateSize();
+    resizeBasemap();
+  });
+  observer.observe(document.getElementById('map'));
 }
 
 /* ------------------------------------------------------------

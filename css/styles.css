@@ -986,24 +986,11 @@ input::placeholder { color: var(--text-faint); }
   z-index: 0;
 }
 
-/* Standard OSM tiles are busy and saturated, so they are muted toward the
-   app's warm neutral ground here. This filter is doing the job a purpose-built
-   basemap would do — CARTO's Positron would have been better, but their tiles
-   now require an API key.
+/* No filter. The basemap is OpenFreeMap's Positron (and Dark Matter in dark
+   mode), which is already a quiet neutral style designed to sit under data —
+   filtering it would only muddy it. The two filtered raster attempts this
+   replaces are described in js/map.js. */
 
-   The values matter: heavy desaturation plus a lift in brightness flattens the
-   road colours, a little sepia warms the greys toward the cream palette, and
-   reduced contrast stops labels fighting the pins drawn on top. */
-.leaflet-tile-pane {
-  filter: saturate(.42) brightness(1.07) sepia(.14) contrast(.92);
-}
-@media (prefers-color-scheme: dark) {
-  /* Inverting a light basemap is a compromise, but it keeps labels legible and
-     avoids a second tile source. Hue-rotate puts blues back after the invert. */
-  .leaflet-tile-pane {
-    filter: invert(.92) hue-rotate(180deg) saturate(.35) brightness(.92) contrast(.95);
-  }
-}
 
 .leaflet-container { font-family: var(--font-sans); background: var(--surface-2); }
 .leaflet-popup-content-wrapper {

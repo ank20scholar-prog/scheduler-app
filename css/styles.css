@@ -364,11 +364,27 @@ h1, h2, .card-title, .stage-status {
 }
 .hour-rule { flex: 1; height: 1px; background: var(--border-soft); }
 
+/* The outer block is pure geometry: its top and height are the real times, so
+   it stays aligned to the hour grid. It paints nothing itself. */
 .block {
   position: absolute;
   left: 52px; right: 0;
+  cursor: pointer;
+  animation: blockIn .45s var(--ease) backwards;
+  transition: transform .18s var(--ease);
+}
+
+/* The visible card, inset from the bottom of the slot. --block-gap is the only
+   thing creating separation between touching blocks, and because it lives here
+   rather than on the geometry, it cannot shift any block off its true time. */
+:root { --block-gap: 3px; }
+
+.block-inner {
+  position: absolute;
+  inset: 0 0 var(--block-gap) 0;
   border-radius: var(--radius-sm);
   padding: 7px 10px;
+  /* Clips the animated figures so none can reach a neighbouring block. */
   overflow: hidden;
   /* Thick colour spine plus a tinted fill, so a course is identifiable from
      its colour alone without reading the title. The tint is stronger in dark
@@ -378,13 +394,10 @@ h1, h2, .card-title, .stage-status {
   border-top: 1px solid color-mix(in srgb, var(--blk, var(--accent)) 30%, transparent);
   border-right: 1px solid color-mix(in srgb, var(--blk, var(--accent)) 30%, transparent);
   border-bottom: 1px solid color-mix(in srgb, var(--blk, var(--accent)) 30%, transparent);
-  cursor: pointer;
-  animation: blockIn .45s var(--ease) backwards;
-  transition: transform .18s var(--ease);
 }
 
 @media (prefers-color-scheme: dark) {
-  .block { background: color-mix(in srgb, var(--blk, var(--accent)) 30%, var(--surface)); }
+  .block-inner { background: color-mix(in srgb, var(--blk, var(--accent)) 30%, var(--surface)); }
 }
 
 /* Titles stay full-contrast --text on purpose. Tinting them toward the block
@@ -403,9 +416,9 @@ h1, h2, .card-title, .stage-status {
 }
 .block-meta { font-size: .7rem; color: var(--text-dim); }
 
-.block.is-now {
+.block.is-now .block-inner {
   box-shadow: 0 0 0 1.5px var(--blk, var(--accent));
-  animation: blockIn .45s var(--ease) backwards, glow 2.6s ease-in-out infinite;
+  animation: glow 2.6s ease-in-out infinite;
 }
 @keyframes glow {
   0%,100% { box-shadow: 0 0 0 1.5px var(--blk), 0 0 0 0 color-mix(in srgb, var(--blk) 40%, transparent); }
@@ -417,15 +430,16 @@ h1, h2, .card-title, .stage-status {
    whole day look switched off once the last class had passed. */
 .block.is-past { opacity: .82; }
 
-/* Generated sleep / get-ready blocks are advisory rather than committed, so
-   they sit visually behind the real ones: dashed edge, lighter fill. */
-.block[data-kind="auto"] {
+/* Get-ready blocks are advisory rather than committed, so they sit visually
+   behind the real ones. (Sleep is deliberately the loudest thing on the
+   timeline — see figures.css.) */
+.block[data-kind="auto"] .block-inner {
   border-style: dashed;
   border-left-style: solid;
   background: color-mix(in srgb, var(--blk) 10%, var(--surface));
 }
 @media (prefers-color-scheme: dark) {
-  .block[data-kind="auto"] { background: color-mix(in srgb, var(--blk) 18%, var(--surface)); }
+  .block[data-kind="auto"] .block-inner { background: color-mix(in srgb, var(--blk) 18%, var(--surface)); }
 }
 .block[data-kind="auto"] .block-title { font-weight: 500; }
 .block.is-past .block-title { text-decoration: line-through; text-decoration-thickness: 1px; }
@@ -490,14 +504,18 @@ h1, h2, .card-title, .stage-status {
 .card-title { font-size: 1rem; margin-bottom: 8px; }
 
 .form { display: flex; flex-direction: column; gap: 10px; }
-.row { display: flex; gap: 10px; }
+/* wrap is the guarantee. iOS Safari renders native date and time controls
+   considerably wider than Chromium does, so a pair that fits in testing can
+   still overflow on the phone. If they genuinely cannot sit side by side they
+   drop onto their own line instead of spilling out of the card. */
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
 
 /* min-width: 0 is load-bearing, not decoration.
    A flex item defaults to min-width:auto, which refuses to shrink below its
    content's intrinsic width. Time inputs have a chunky intrinsic width on
    Windows because of the built-in clock picker, so a two-up Starts/Ends pair
    could not fit and the second field spilled out past the card edge. */
-.row > * { flex: 1; min-width: 0; }
+.row > * { flex: 1 1 140px; min-width: 0; }
 .field { display: flex; flex-direction: column; gap: 4px; font-size: .74rem; color: var(--text-dim); min-width: 0; }
 
 /* Inputs must be allowed to shrink too, or they re-introduce the overflow. */
@@ -1182,28 +1200,43 @@ input::placeholder { color: var(--text-faint); }
 
 /* Date and time inputs carry a native picker glyph, so they need a little less
    horizontal padding than text inputs to sit two-up without crowding. */
-input[type="date"], input[type="time"] { padding-inline: 9px; }
+/* Strip the native control chrome so our own sizing actually applies. Without
+   this, iOS gives date and time inputs an intrinsic width of its own choosing
+   and ignores the box we set. */
+input[type="date"], input[type="time"] {
+  padding-inline: 9px;
+  -webkit-appearance: none;
+  appearance: none;
+  max-width: 100%;
+}
 
 /* ============================================================
    Next-day continuation
    ============================================================ */
 
 /* The line where the day rolls over past midnight. */
+/* Crossing into the next day is the single biggest boundary on this timeline,
+   so it is stated plainly rather than whispered. */
 .day-divider {
   position: absolute;
   left: 52px; right: 0;
   height: 0;
-  border-top: 2px dashed var(--border);
-  z-index: 4;
+  border-top: 2px solid var(--accent);
+  z-index: 5;
   pointer-events: none;
+  opacity: .85;
 }
 .day-divider span {
-  position: absolute; right: 0; top: -9px;
+  position: absolute; right: 0; top: -17px;
   background: var(--bg);
-  padding: 0 8px;
-  font-size: .64rem; font-weight: 700;
-  letter-spacing: .07em; text-transform: uppercase;
-  color: var(--text-faint);
+  padding: 2px 12px;
+  font-family: var(--font-serif);
+  font-size: 1.02rem;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  color: var(--accent);
+  border-radius: 20px;
+  white-space: nowrap;
 }
 
 /* Blocks belonging to the next day sit back slightly, so it is clear you have

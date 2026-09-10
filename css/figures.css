@@ -8,22 +8,33 @@
    Everything animates in CSS. The SVG shapes are built in js/figures.js.
    ============================================================ */
 
-/* ---------- Shared placement ---------- */
+/* ---------- Shared placement ----------
+   Sized by the block's HEIGHT, not its width. Width-based sizing meant a short
+   block could get a figure taller than the block itself, which spilled over
+   into the neighbouring one. Driving it from height guarantees it fits
+   vertically, and max-width stops it becoming absurdly wide on a tall block.
+
+   --fig-inset is the clearance kept on every edge, so a figure never touches
+   its own boundary either. The parent .block-inner also clips, so this is
+   belt and braces. */
+:root { --fig-inset: 9px; }
+
 .sleeper, .brusher, .class-figure {
   position: absolute;
-  right: 12px;
+  right: var(--fig-inset);
   top: 50%;
   transform: translateY(-50%);
-  height: auto;
+  height: calc(100% - var(--fig-inset) * 2);
+  width: auto;
   pointer-events: none;
 }
-.sleeper      { width: min(250px, 66%); opacity: .97; }
-.brusher      { width: min(132px, 44%); opacity: .95; }
-.class-figure { width: min(120px, 40%); opacity: .82; }
+.sleeper      { max-width: 62%; opacity: .97; }
+.brusher      { max-width: 34%; opacity: .95; }
+.class-figure { max-width: 40%; opacity: .82; }
 
 /* A 50-minute class is only about 55px tall. The figure shrinks to fit rather
    than being dropped, so short blocks still carry their subject. */
-.class-figure.fig-compact { width: 70px; opacity: .72; right: 8px; }
+.class-figure.fig-compact { max-width: 30%; opacity: .72; }
 
 /* ============================================================
    SLEEP — the block with the most visual weight on the timeline
@@ -65,6 +76,10 @@
 .sl-duvet      { fill: var(--blk); opacity: .9; }
 .sl-duvet-fold { fill: none; stroke: var(--bg-elev); stroke-width: 2.6; opacity: .55; }
 .sl-shoulder   { fill: color-mix(in srgb, var(--blk) 70%, #ffffff); }
+.sl-neck       { fill: #e8c4a8; }
+.sl-ear        { fill: none; stroke: #d8a888; stroke-width: 2; stroke-linecap: round; }
+.sl-arm        { fill: none; stroke: color-mix(in srgb, var(--blk) 70%, #ffffff); stroke-width: 8; stroke-linecap: round; }
+.sl-hand       { fill: #e8c4a8; }
 .sl-head       { fill: #e8c4a8; }
 .sl-hair       { fill: #4a3f38; }
 .sl-eye        { fill: none; stroke: #33291f; stroke-width: 1.9; stroke-linecap: round; }
@@ -77,9 +92,18 @@
 /* The breath lives on the duvet and shoulder, not the whole figure. Scaling
    everything made it look like a picture zooming rather than someone
    breathing — this is the single biggest thing that sells it. */
-.sl-duvet      { animation: sleepBreathe 5s ease-in-out infinite; transform-origin: 160px 76px; }
-.sl-shoulder   { animation: sleepBreathe 5s ease-in-out infinite; transform-origin: 104px 60px; }
-.sl-head-group { animation: sleepHead 5s ease-in-out infinite; transform-origin: 70px 66px; }
+.sl-duvet      { animation: sleepBreathe 5s ease-in-out infinite; transform-origin: 170px 80px; }
+.sl-shoulder   { animation: sleepBreathe 5s ease-in-out infinite; transform-origin: 112px 74px; }
+.sl-arm        { animation: sleepArm 5s ease-in-out infinite; transform-origin: 118px 70px; }
+.sl-hand       { animation: sleepArm 5s ease-in-out infinite; transform-origin: 118px 70px; }
+.sl-head-group { animation: sleepHead 5s ease-in-out infinite; transform-origin: 62px 70px; }
+
+/* The arm rides the chest as it rises, rather than sitting rigid on a moving
+   body — a small thing that stops the figure looking like separate parts. */
+@keyframes sleepArm {
+  0%, 100% { transform: translateY(0); }
+  45%      { transform: translateY(-1.6px); }
+}
 
 @keyframes sleepBreathe {
   0%, 100% { transform: scaleY(1); }
@@ -120,12 +144,15 @@
 .br-bubble       { fill: var(--bg-elev); stroke: var(--border); stroke-width: .7; }
 
 /* Fast, short, side to side — with the head bobbing against the scrub. */
-.br-arm { animation: brush .5s ease-in-out infinite; transform-origin: 96px 70px; }
+.br-arm { animation: brush .5s ease-in-out infinite; transform-origin: 86px 82px; }
+.br-arm-idle { animation: none; }   /* the far arm just hangs there */
+/* Short horizontal scrub across the teeth. Small travel on purpose: the brush
+   head sits on the mouth, so a big movement would drag it off the face. */
 @keyframes brush {
   0%, 100% { transform: translateX(0) rotate(0deg); }
-  50%      { transform: translateX(7px) rotate(6deg); }
+  50%      { transform: translateX(-5px) rotate(-3deg); }
 }
-.br-head-group { animation: brushHead .5s ease-in-out infinite; transform-origin: 112px 60px; }
+.br-head-group { animation: brushHead .5s ease-in-out infinite; transform-origin: 66px 68px; }
 @keyframes brushHead {
   0%, 100% { transform: translateX(0) rotate(0deg); }
   50%      { transform: translateX(-1.5px) rotate(-1.2deg); }

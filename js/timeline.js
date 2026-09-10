@@ -182,19 +182,23 @@ function renderContinuation(isoDate, onBlockTap) {
     div.style.height = `${Math.max(height, 22)}px`;
     div.style.setProperty('--blk', entry.color || 'var(--accent)');
 
+    const inner = document.createElement('div');
+    inner.className = 'block-inner';
+
     const title = document.createElement('div');
     title.className = 'block-title';
     title.textContent = entry.title;
-    div.appendChild(title);
+    inner.appendChild(title);
 
     if (height > 40) {
       const meta = document.createElement('div');
       meta.className = 'block-meta';
       meta.textContent = `${fmt12(entry.start)} – ${fmt12(entry.end)}`;
-      div.appendChild(meta);
+      inner.appendChild(meta);
     }
 
-    addFigure(div, entry, height);
+    addFigure(div, inner, entry, height);
+    div.appendChild(inner);
 
     div.addEventListener('click', () => onBlockTap(entry));
     el.blocks.appendChild(div);
@@ -260,13 +264,22 @@ function renderBlocks(isoDate, onBlockTap) {
     // Stagger the entrance animation slightly so blocks cascade in.
     div.style.animationDelay = `${Math.min(index * 40, 300)}ms`;
 
+    /* The visible card is an INNER element, inset slightly from the bottom of
+       its slot. That is what puts a hairline gap between adjacent blocks
+       WITHOUT touching the timing: the outer .block keeps its exact computed
+       top and its full height, so it still lines up with the hour grid and the
+       now-line crosses it at the right moment. Only the painted card is inset.
+
+       The inner element also clips its contents, which is what stops the
+       animated figures bleeding into neighbouring blocks. */
+    const inner = document.createElement('div');
+    inner.className = 'block-inner';
+
     const title = document.createElement('div');
     title.className = 'block-title';
     title.textContent = entry.title;
 
-    div.appendChild(title);
-
-    addFigure(div, entry, height);
+    inner.appendChild(title);
 
     // Only show the time range if the block is tall enough to fit it.
     if (height > 40) {
@@ -274,8 +287,11 @@ function renderBlocks(isoDate, onBlockTap) {
       meta.className = 'block-meta';
       meta.textContent = `${fmt12(entry.start)} – ${fmt12(entry.end)}` +
                          (entry.location ? ` · ${entry.location}` : '');
-      div.appendChild(meta);
+      inner.appendChild(meta);
     }
+
+    addFigure(div, inner, entry, height);
+    div.appendChild(inner);
 
     div.addEventListener('click', () => onBlockTap(entry));
     el.blocks.appendChild(div);
@@ -292,17 +308,17 @@ function renderBlocks(isoDate, onBlockTap) {
  *   Get ready  75 minutes, so a smaller scene
  *   Classes    a figure matched to the subject
  */
-function addFigure(div, entry, height) {
+function addFigure(div, inner, entry, height) {
   if (entry.auto === 'sleep') {
     if (height > 120) {
       div.classList.add('is-sleep');
-      div.appendChild(buildSleeper());
+      inner.appendChild(buildSleeper());
     }
     return;
   }
 
   if (entry.auto === 'ready') {
-    if (height > 70) div.appendChild(buildBrusher());
+    if (height > 70) inner.appendChild(buildBrusher());
     return;
   }
 
@@ -312,7 +328,7 @@ function addFigure(div, entry, height) {
        them left the majority of the timeline figure-less, so short blocks get
        a scaled-down version instead of nothing. */
     if (height < 95) figure.classList.add('fig-compact');
-    div.appendChild(figure);
+    inner.appendChild(figure);
   }
 }
 

@@ -72,19 +72,26 @@ export function showMap(isoDate) {
     });
 
     /* Vector basemap, not raster tiles.
-       Two earlier attempts failed for instructive reasons: standard OSM raster
-       tiles are busy and saturated and no CSS filter makes them look designed,
-       and CARTO's Positron — which is exactly the right style — now returns
-       "API KEY REQUIRED" watermarks. OpenFreeMap serves the genuine Positron
-       and Dark Matter styles free with no key and no signup.
+       The history here matters, because three styles were wrong before this
+       one was right:
+         • Standard OSM raster tiles are busy and saturated, and no CSS filter
+           makes a raster image look designed.
+         • CARTO's Positron returns "API KEY REQUIRED" watermarks now.
+         • OpenFreeMap's own Positron fixed the busyness but went too far the
+           other way — it is built to be an invisible backdrop for data, so it
+           reads as blank and dull.
 
-       Vector means real dark mode instead of an inverted light map, and crisp
-       labels at every zoom instead of stretched bitmaps. MapLibre renders it;
-       the Leaflet bridge means every marker, popup and route below this line
-       keeps working unchanged. */
+       Liberty is a full cartographic style: parks and lawns green, water blue,
+       buildings as distinct shapes, roads with real hierarchy. Fiord is its
+       dark counterpart and keeps that colour separation — OpenFreeMap's "dark"
+       style renders water at rgb(27,27,29) and buildings at rgb(10,10,10),
+       which is the same dullness problem in the dark.
+
+       Vector also means the palette can be nudged toward this app at runtime;
+       see warmUpBasemap() below. */
     const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     const styleFor = (isDark) =>
-      `https://tiles.openfreemap.org/styles/${isDark ? 'dark' : 'positron'}`;
+      `https://tiles.openfreemap.org/styles/${isDark ? 'fiord' : 'liberty'}`;
 
     tiles = L.maplibreGL({
       style: styleFor(dark),
@@ -93,10 +100,14 @@ export function showMap(isoDate) {
 
     // Correct the canvas whenever the container's box actually changes.
     watchMapSize();
+    warmUpBasemap();
 
     // Follow the system theme live rather than only at load.
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-      try { tiles.getMaplibreMap().setStyle(styleFor(e.matches)); } catch { /* not ready */ }
+      try {
+        tiles.getMaplibreMap().setStyle(styleFor(e.matches));
+        warmUpBasemap();
+      } catch { /* not ready */ }
     });
 
     layers = L.layerGroup().addTo(map);
@@ -140,6 +151,43 @@ export function refreshMap() {
 function resizeBasemap() {
   if (!tiles) return;
   try { tiles.getMaplibreMap().resize(); } catch { /* style still loading */ }
+}
+
+/* Nudge a few of the basemap's colours toward this app's warm palette.
+ *
+ * Deliberately a light touch. Liberty's greens and blues are the whole point —
+ * over-correcting them would land back at the dull grey map this replaced. So
+ * only the built environment moves: buildings and their outlines shift warmer
+ * to sit against the cream ground, and the road fill loses its stark white.
+ * Nature keeps its own colours.
+ *
+ * Only possible because these are vector tiles; a raster basemap is a picture
+ * and cannot be re-coloured after the fact. */
+const WARM_OVERRIDES = [
+  ['building',          'fill-color',   'hsl(34, 18%, 84%)'],
+  ['building-top',      'fill-color',   'hsl(34, 20%, 87%)'],
+  ['building_outline',  'line-color',   'hsl(34, 14%, 76%)'],
+  ['highway_minor',     'line-color',   'hsl(40, 30%, 97%)'],
+  ['highway_path',      'line-color',   'hsl(34, 22%, 78%)']
+];
+
+function warmUpBasemap() {
+  if (!tiles) return;
+
+  const gl = (() => { try { return tiles.getMaplibreMap(); } catch { return null; } })();
+  if (!gl) return;
+
+  const apply = () => {
+    for (const [layer, property, value] of WARM_OVERRIDES) {
+      // Layer names differ between styles, so each override is independent —
+      // a missing layer must not stop the rest being applied.
+      try { if (gl.getLayer(layer)) gl.setPaintProperty(layer, property, value); }
+      catch { /* not in this style */ }
+    }
+  };
+
+  if (gl.isStyleLoaded && gl.isStyleLoaded()) apply();
+  else gl.once('styledata', apply);
 }
 
 function watchMapSize() {

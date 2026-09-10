@@ -149,43 +149,50 @@ function svgEl(className, viewBox, markup) {
  * rather than the whole figure scaling, which is what made the previous
  * version look like a picture being zoomed rather than a person breathing. */
 export function buildSleeper() {
-  return svgEl('sleeper', '0 0 240 110', `
-    <!-- headboard and bed -->
-    <rect class="sl-headboard" x="8" y="20" width="12" height="62" rx="5" />
-    <rect class="sl-bed" x="8" y="80" width="224" height="10" rx="5" />
-    <rect class="sl-leg" x="16" y="90" width="7" height="12" rx="3" />
-    <rect class="sl-leg" x="218" y="90" width="7" height="12" rx="3" />
+  return svgEl('sleeper', '0 0 260 118', `
+    <!-- bed frame -->
+    <rect class="sl-headboard" x="6" y="16" width="13" height="72" rx="6" />
+    <rect class="sl-bed" x="6" y="86" width="248" height="11" rx="5" />
+    <rect class="sl-leg" x="14" y="97" width="8" height="14" rx="3" />
+    <rect class="sl-leg" x="238" y="97" width="8" height="14" rx="3" />
+    <rect class="sl-mattress" x="12" y="78" width="238" height="10" rx="5" />
 
-    <!-- pillow, dented where the head rests -->
-    <path class="sl-pillow" d="M24 74 Q22 50 44 48 L70 46 Q86 48 84 62 Q82 74 62 76 Z" />
-
-    <!-- mattress line -->
-    <rect class="sl-mattress" x="12" y="74" width="216" height="8" rx="4" />
+    <!-- Pillow, dipped where the head presses into it. -->
+    <path class="sl-pillow" d="M26 78 Q20 54 42 50 L78 47 Q96 50 96 62 Q96 74 78 78 Z" />
 
     <g class="sl-figure">
-      <!-- duvet: the big shape, swelling over the chest as it breathes -->
-      <path class="sl-duvet" d="M92 76 Q96 52 128 52 L196 52 Q222 54 224 76 Z" />
-      <path class="sl-duvet-fold" d="M92 64 Q140 56 224 62" />
+      <!-- ONE continuous body: neck and shoulder run from the head into the
+           duvet, so the figure is a person rather than a head beside a lump. -->
+      <path class="sl-neck" d="M76 62 L104 60 L104 78 L78 78 Z" />
 
-      <!-- shoulder peeking above the duvet, following the breath -->
-      <path class="sl-shoulder" d="M92 60 Q100 50 116 52 L116 60 Z" />
+      <!-- Duvet: shoulder rise, dip at the waist, hip, then down to the feet. -->
+      <path class="sl-duvet"
+            d="M96 80 Q98 58 120 56 Q140 54 152 66 Q166 78 182 68 Q200 57 216 62
+               Q236 68 238 80 Z" />
+      <path class="sl-duvet-fold" d="M100 72 Q150 80 190 70 Q216 64 236 72" />
 
-      <!-- head resting on its side, sunk into the pillow -->
+      <!-- Shoulder above the covers, connected to the neck. -->
+      <path class="sl-shoulder" d="M96 68 Q102 56 118 57 Q128 58 130 66 L128 74 L98 76 Z" />
+
+      <!-- Arm resting on top of the duvet — the thing that most makes a
+           sleeping figure read as asleep rather than buried. -->
+      <path class="sl-arm" d="M118 70 Q136 76 152 72 Q160 70 166 73" />
+      <circle class="sl-hand" cx="169" cy="74" r="6" />
+
+      <!-- Head, sunk into the pillow and tilted back into it. -->
       <g class="sl-head-group">
-        <circle class="sl-head" cx="70" cy="60" r="15" />
-        <path class="sl-hair" d="M56 56 Q56 43 70 43 Q84 43 85 55 Q76 49 66 52 Q59 54 56 56 Z" />
-        <!-- closed eye, one visible from this angle -->
-        <path class="sl-eye" d="M63 61 q4 3.5 8 0" />
-        <!-- slightly open mouth -->
-        <ellipse class="sl-mouth" cx="74" cy="68" rx="2.4" ry="1.6" />
+        <circle class="sl-head" cx="62" cy="63" r="16" />
+        <path class="sl-hair" d="M46 60 Q45 45 62 44 Q78 44 79 58 Q70 51 60 54 Q51 55 46 60 Z" />
+        <path class="sl-ear" d="M74 64 q5 1 4 6 q-1 4 -5 3" />
+        <path class="sl-eye" d="M54 65 q4.5 4 9 0" />
+        <ellipse class="sl-mouth" cx="66" cy="73" rx="2.6" ry="1.7" />
       </g>
     </g>
 
-    <!-- Zzz, each on its own drift with its own timing -->
     <g class="sl-zzz">
-      <text class="sl-z a" x="96" y="34">z</text>
-      <text class="sl-z b" x="112" y="24">z</text>
-      <text class="sl-z c" x="130" y="14">z</text>
+      <text class="sl-z a" x="92" y="34">z</text>
+      <text class="sl-z b" x="110" y="23">z</text>
+      <text class="sl-z c" x="130" y="12">z</text>
     </g>
   `);
 }
@@ -197,44 +204,48 @@ export function buildSleeper() {
 /* Brushing teeth at a sink. The arm scrubs horizontally, the head bobs very
  * slightly against it, and foam appears and fades. */
 export function buildBrusher() {
-  return svgEl('brusher', '0 0 150 110', `
-    <!-- mirror -->
-    <rect class="br-mirror" x="18" y="6" width="52" height="42" rx="6" />
-    <path class="br-glint" d="M26 42 L58 12" />
+  return svgEl('brusher', '0 0 132 116', `
+    <!-- Mirror directly above the basin, with the person in front of both, so
+         the scene reads as someone AT a sink rather than standing beside one. -->
+    <rect class="br-mirror" x="34" y="4" width="64" height="40" rx="7" />
+    <path class="br-glint" d="M42 38 L62 12" />
 
-    <!-- sink and pedestal -->
-    <path class="br-sink" d="M8 74 L88 74 Q86 90 70 90 L26 90 Q10 90 8 74 Z" />
-    <rect class="br-pedestal" x="40" y="90" width="16" height="16" rx="3" />
-    <rect class="br-tap" x="44" y="62" width="6" height="13" rx="3" />
-    <path class="br-tap-spout" d="M47 62 q0 -8 9 -8" />
+    <!-- basin, tap, pedestal — centred under the mirror -->
+    <rect class="br-tap" x="63" y="50" width="6" height="12" rx="3" />
+    <path class="br-tap-spout" d="M66 50 q0 -7 8 -7" />
+    <path class="br-sink" d="M22 62 L110 62 Q108 80 88 80 L44 80 Q24 80 22 62 Z" />
+    <rect class="br-pedestal" x="58" y="80" width="16" height="30" rx="4" />
 
     <g class="br-figure">
-      <!-- body -->
-      <path class="br-torso" d="M92 92 Q92 62 112 62 Q132 62 132 92 Z" />
+      <!-- torso, standing at the basin -->
+      <path class="br-torso" d="M42 110 Q42 74 66 74 Q90 74 90 110 Z" />
 
-      <!-- head, bobbing with the brushing -->
+      <!-- FAR arm, hanging at the side. Previously there was only one arm. -->
+      <path class="br-limb br-arm-idle" d="M46 82 Q38 94 40 104" />
+      <circle class="br-hand" cx="40" cy="106" r="4.5" />
+
       <g class="br-head-group">
-        <circle class="br-head" cx="112" cy="44" r="16" />
-        <path class="br-hair" d="M96 40 Q98 26 112 26 Q126 26 128 40 Q119 32 112 34 Q103 33 96 40 Z" />
-        <circle class="br-eye" cx="105" cy="45" r="2" />
-        <circle class="br-eye" cx="118" cy="45" r="2" />
-        <!-- open mouth, brush inside -->
-        <ellipse class="br-mouth" cx="111" cy="54" rx="6" ry="4" />
+        <circle class="br-head" cx="66" cy="52" r="17" />
+        <path class="br-hair" d="M49 48 Q50 33 66 33 Q82 33 83 48 Q74 40 66 42 Q56 41 49 48 Z" />
+        <circle class="br-eye" cx="59" cy="52" r="2.1" />
+        <circle class="br-eye" cx="73" cy="52" r="2.1" />
+        <!-- open mouth, with the brush inside it -->
+        <ellipse class="br-mouth" cx="66" cy="62" rx="7.5" ry="4.6" />
       </g>
 
-      <!-- brushing arm: scrubs side to side -->
+      <!-- NEAR arm, raised so the brush head sits ON the mouth at (66,62)
+           rather than beside the head, which is where it was before. -->
       <g class="br-arm">
-        <path class="br-limb" d="M96 70 Q86 62 84 54" />
-        <circle class="br-hand" cx="84" cy="53" r="4" />
-        <rect class="br-brush-handle" x="82" y="44" width="4" height="14" rx="2" />
-        <rect class="br-brush-head" x="80.5" y="40" width="7" height="6" rx="2" />
+        <path class="br-limb" d="M86 82 Q92 70 84 62" />
+        <circle class="br-hand" cx="82" cy="62" r="4.5" />
+        <rect class="br-brush-handle" x="72" y="59.5" width="12" height="4" rx="2" />
+        <rect class="br-brush-head" x="63" y="58.5" width="10" height="6" rx="2.4" />
       </g>
 
-      <!-- foam flecks -->
       <g class="br-foam">
-        <circle class="br-bubble f1" cx="122" cy="56" r="2.6" />
-        <circle class="br-bubble f2" cx="128" cy="50" r="1.9" />
-        <circle class="br-bubble f3" cx="119" cy="47" r="1.5" />
+        <circle class="br-bubble f1" cx="56" cy="64" r="2.4" />
+        <circle class="br-bubble f2" cx="50" cy="58" r="1.8" />
+        <circle class="br-bubble f3" cx="58" cy="54" r="1.5" />
       </g>
     </g>
   `);

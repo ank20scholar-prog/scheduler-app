@@ -4,7 +4,7 @@
  * already-ranked list into DOM, grouped under its bucket headings.
  */
 
-import { state, fmt12, fromISODate } from './store.js';
+import { state, fmt12, fromISODate, describeLead } from './store.js';
 import { rankTasks, groupTasks, urgentCount } from './priority.js';
 
 const el = {
@@ -85,6 +85,14 @@ function buildTaskRow(task, index, onToggle, onDelete, highlightId) {
   reason.textContent = task.ranking.reason;
 
   meta.append(chip, when, reason);
+
+  // Show the reminder lead time, so it is visible without opening anything.
+  if (task.remind > 0 && !task.done) {
+    const bell = document.createElement('span');
+    bell.className = 'task-bell';
+    bell.textContent = `○ ${describeLead(task.remind)}`;
+    meta.appendChild(bell);
+  }
   main.append(title, meta);
 
   const del = document.createElement('button');

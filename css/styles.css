@@ -1223,3 +1223,23 @@ input[type="date"], input[type="time"] { padding-inline: 9px; }
    scrolled past midnight without them being hard to read. */
 .block.is-next-day { opacity: .88; }
 .hour-label.next-day-label { color: var(--text-faint); opacity: .75; }
+
+/* ---------- Reminders ---------- */
+.task-bell { color: var(--accent); font-weight: 600; }
+
+.reminder-card { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 30%, transparent); }
+.reminder-card .sub { margin-bottom: 10px; }
+
+/* Selects should match the text inputs exactly. */
+select {
+  width: 100%;
+  padding: 11px 12px;
+  font-size: 16px;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  min-width: 0;
+}
+select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }

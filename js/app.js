@@ -8,7 +8,8 @@
 import {
   state, load, save, id, COLORS, sanitize, applyState,
   toISODate, fromISODate, addDays, fmt12, toMinutes, toHHMM,
-  entriesForDate, autoEntriesForDate, encodeForTransfer, decodeTransfer
+  entriesForDate, autoEntriesForDate, encodeForTransfer, decodeTransfer,
+  tasksToICS, describeLead
 } from './store.js';
 import { renderDay, tick, scrollToNow } from './timeline.js';
 import { renderTasks } from './tasks.js';
@@ -170,6 +171,7 @@ $('#task-form').addEventListener('submit', (e) => {
     priority: draftPriority,
     // Stored as a local datetime string; `new Date()` parses it in local time.
     due: `${date}T${time}`,
+    remind: Number($('#task-remind').value) || 0,
     done: false
   });
 
@@ -585,6 +587,34 @@ function importFromLink() {
   }
 }
 
+/* Hand the tasks to the phone's own Calendar. That is the only route to an
+   alert that fires while Scheduler is closed — see the note in store.js. */
+$('#ics-btn').addEventListener('click', async () => {
+  const pending = state.tasks.filter((t) => !t.done);
+  if (!pending.length) { toast('No tasks to add'); return; }
+
+  const ics = tasksToICS(pending);
+  const filename = `scheduler-tasks-${toISODate(new Date())}.ics`;
+
+  try {
+    const file = new File([ics], filename, { type: 'text/calendar' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: 'Scheduler tasks' });
+      return;
+    }
+  } catch { /* cancelled or unsupported */ }
+
+  try {
+    const url = URL.createObjectURL(new Blob([ics], { type: 'text/calendar' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+    toast(`${pending.length} task${pending.length === 1 ? '' : 's'} exported`);
+  } catch {
+    toast('Could not export on this device');
+  }
+});
+
 $('#import-btn').addEventListener('click', () => $('#import-file').click());
 
 /* Paste route — far easier than the Files app on a phone. */
@@ -635,12 +665,15 @@ function scheduleReminders() {
   for (const task of rankTasks(state.tasks)) {
     if (task.done) continue;
 
-    const msUntil = new Date(task.due).getTime() - now;
+    /* Fire at the lead time, not the deadline — a reminder that arrives as
+       something is already due is not a reminder. */
+    const lead = (task.remind || 0) * 60000;
+    const msUntil = new Date(task.due).getTime() - lead - now;
     if (msUntil <= 0 || msUntil > DAY) continue;
 
     reminderTimers.set(task.id, setTimeout(() => {
       new Notification(task.title, {
-        body: task.ranking.reason,
+        body: `${describeLead(task.remind)} · ${task.ranking.reason}`,
         icon: 'icons/icon-192.png',
         tag: task.id
       });

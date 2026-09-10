@@ -140,11 +140,19 @@ function cleanTask(raw) {
   const due = typeof raw.due === 'string' ? raw.due : '';
   if (Number.isNaN(new Date(due).getTime())) return null;
 
+  /* How many minutes before the deadline to remind. 0 means no reminder.
+     Clamped to a week so a hostile or mistyped value cannot schedule a timer
+     absurdly far out. */
+  const remind = Number.isFinite(raw.remind)
+    ? Math.min(10080, Math.max(0, Math.round(raw.remind)))
+    : 0;
+
   return {
     id: cleanId(raw.id),
     title,
     priority: PRIORITIES.has(raw.priority) ? raw.priority : 'medium',
     due,
+    remind,
     done: raw.done === true
   };
 }
@@ -636,4 +644,90 @@ export function monthSummary(year, month) {
     });
   }
   return summary;
+}
+
+// ------------------------------------------------------------
+// Calendar export (.ics)
+// ------------------------------------------------------------
+
+/* Turn the tasks into a calendar file your phone understands.
+ *
+ * This is the only way to get a reminder that fires when Scheduler is CLOSED.
+ * In-page timers stop when the app does; iOS has no local-scheduled-
+ * notification API for web apps. Handing the deadline to the phone's own
+ * Calendar means the alert comes from software that is always running.
+ *
+ * Each task becomes a timed event with a VALARM at its lead time.
+ */
+function icsStamp(date) {
+  // Local time, no timezone suffix: "floating" time, which every calendar app
+  // interprets as the device's own clock. Right for a personal deadline.
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}` +
+         `T${pad(date.getHours())}${pad(date.getMinutes())}00`;
+}
+
+// Escape the characters that carry meaning in an .ics file.
+function icsEscape(text) {
+  return String(text)
+    .replace(/\\/g, '\\\\')      // backslash first, or it double-escapes the rest
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .replace(/\r?\n/g, '\\n');
+}
+
+export function tasksToICS(tasks) {
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Scheduler//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH'
+  ];
+
+  for (const task of tasks) {
+    if (task.done) continue;
+
+    const due = new Date(task.due);
+    if (Number.isNaN(due.getTime())) continue;
+
+    lines.push(
+      'BEGIN:VEVENT',
+      `UID:${task.id}@scheduler.local`,
+      `DTSTAMP:${icsStamp(new Date())}`,
+      `DTSTART:${icsStamp(due)}`,
+      `DTEND:${icsStamp(new Date(due.getTime() + 30 * 60000))}`,
+      `SUMMARY:${icsEscape(task.title)}`,
+      `DESCRIPTION:${icsEscape(task.priority[0].toUpperCase() + task.priority.slice(1))} priority`
+    );
+
+    if (task.remind > 0) {
+      lines.push(
+        'BEGIN:VALARM',
+        'ACTION:DISPLAY',
+        `TRIGGER:-PT${task.remind}M`,
+        `DESCRIPTION:${icsEscape(task.title)}`,
+        'END:VALARM'
+      );
+    }
+
+    lines.push('END:VEVENT');
+  }
+
+  lines.push('END:VCALENDAR');
+
+  // .ics requires CRLF line endings — calendar apps reject bare newlines.
+  return lines.join('\r\n');
+}
+
+// "90" -> "1h 30m before". Used in the task list and the form.
+export function describeLead(minutes) {
+  if (!minutes) return 'No reminder';
+  if (minutes < 60) return `${minutes} min before`;
+  if (minutes < 1440) {
+    const h = Math.floor(minutes / 60), m = minutes % 60;
+    return m ? `${h}h ${m}m before` : `${h}h before`;
+  }
+  const d = Math.round(minutes / 1440);
+  return d === 1 ? '1 day before' : `${d} days before`;
 }

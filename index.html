@@ -227,8 +227,31 @@
       <input type="time" id="task-time" required />
     </div>
 
+    <label class="field">
+      Remind me
+      <select id="task-remind">
+        <option value="0">No reminder</option>
+        <option value="10">10 minutes before</option>
+        <option value="30">30 minutes before</option>
+        <option value="60" selected>1 hour before</option>
+        <option value="180">3 hours before</option>
+        <option value="720">12 hours before</option>
+        <option value="1440">1 day before</option>
+        <option value="2880">2 days before</option>
+      </select>
+    </label>
+
     <button type="submit" class="primary-btn">Add task</button>
   </form>
+
+  <section class="card reminder-card">
+    <h2 class="card-title">Reminders on your phone</h2>
+    <p class="sub">
+      In-app reminders only appear while Scheduler is open. Send your tasks to
+      your phone's Calendar and the alerts arrive even when it is closed.
+    </p>
+    <button type="button" id="ics-btn" class="secondary-btn wide">Add tasks to my calendar</button>
+  </section>
 
   <!-- Tasks are grouped into urgency buckets by the ranking algorithm. -->
   <section id="task-groups" class="task-groups"></section>

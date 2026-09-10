@@ -12,6 +12,7 @@
 
 import {
   state, entriesForDate, scheduledEntriesForDate, gapsForDate, windowForDate,
+  continuationForDate, addDays, fromISODate,
   toMinutes, fmt12, nowMinutes, toISODate, humanDuration
 } from './store.js';
 
@@ -114,6 +115,7 @@ function setRing(circle, percent) {
    tick(), because it varies by date — a day with an early class has an earlier
    bedtime and therefore an earlier window start. */
 let win = { start: 0, end: 1440 };
+let continuation = 0;   // minutes of the next day drawn below midnight
 
 // Convert a time to a vertical offset in pixels from the top of the timeline.
 function yFor(minutes) {
@@ -125,18 +127,80 @@ function yFor(minutes) {
    ------------------------------------------------------------ */
 
 export function renderDay(isoDate, onGapTap, onBlockTap) {
-  win = windowForDate(isoDate);
+  win = windowForDate();
   const dayStart = win.start;
   const dayEnd = win.end;
 
-  // Set the container height so absolutely-positioned children have room.
-  el.timeline.style.setProperty('--tl-height', `${(dayEnd - dayStart) * PX_PER_MIN}px`);
+  // How far past midnight we keep drawing, so the night reads continuously.
+  continuation = continuationForDate(isoDate);
 
-  renderHourGrid(dayStart, dayEnd);
+  // Container height covers the full day plus the continuation.
+  el.timeline.style.setProperty(
+    '--tl-height', `${(dayEnd - dayStart + continuation) * PX_PER_MIN}px`
+  );
+
+  renderHourGrid(dayStart, dayEnd + continuation);
   renderBlocks(isoDate, onBlockTap);
+  renderContinuation(isoDate, onBlockTap);
   renderGaps(isoDate, onGapTap);
 
   tick(isoDate);
+}
+
+/* Everything from the next day that falls inside the continuation, drawn
+   below midnight at an offset of a full day. This is what makes a 2:45 AM
+   bedtime visible from the evening it actually belongs to. */
+function renderContinuation(isoDate, onBlockTap) {
+  if (continuation <= 0) return;
+
+  const nextDay = addDays(isoDate, 1);
+
+  // A labelled divider so it is obvious where the day rolls over.
+  const divider = document.createElement('div');
+  divider.className = 'day-divider';
+  divider.style.top = `${yFor(1440)}px`;
+  const label = document.createElement('span');
+  label.textContent = fromISODate(nextDay)
+    .toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+  divider.appendChild(label);
+  el.blocks.appendChild(divider);
+
+  for (const entry of entriesForDate(nextDay)) {
+    const start = toMinutes(entry.start);
+    if (start >= continuation) continue;         // beyond what we are showing
+
+    const end = Math.min(toMinutes(entry.end), continuation);
+    const height = (end - start) * PX_PER_MIN;
+    if (height <= 0) continue;
+
+    const div = document.createElement('div');
+    div.className = 'block is-next-day';
+    div.dataset.id = entry.id;
+    div.dataset.kind = entry.kind;
+    div.style.top = `${yFor(1440 + start)}px`;
+    div.style.height = `${Math.max(height, 22)}px`;
+    div.style.setProperty('--blk', entry.color || 'var(--accent)');
+
+    const title = document.createElement('div');
+    title.className = 'block-title';
+    title.textContent = entry.title;
+    div.appendChild(title);
+
+    if (height > 40) {
+      const meta = document.createElement('div');
+      meta.className = 'block-meta';
+      meta.textContent = `${fmt12(entry.start)} – ${fmt12(entry.end)}`;
+      div.appendChild(meta);
+    }
+
+    if (entry.auto === 'sleep' && height > 120) {
+      div.classList.add('is-sleep');
+      div.appendChild(buildSleeper());
+    }
+
+    div.addEventListener('click', () => onBlockTap(entry));
+    el.blocks.appendChild(div);
+  }
 }
 
 // One faint rule and label per hour.
@@ -154,10 +218,12 @@ function renderHourGrid(dayStart, dayEnd) {
 
     const label = document.createElement('span');
     label.className = 'hour-label';
-    // 13 -> "1 PM". Midnight and noon read as 12.
-    const period = h >= 12 ? 'PM' : 'AM';
-    const hour12 = h % 12 === 0 ? 12 : h % 12;
+    // Hours past 24 belong to the next day, so wrap them back to 0-23.
+    const hourOfDay = h % 24;
+    const period = hourOfDay >= 12 ? 'PM' : 'AM';
+    const hour12 = hourOfDay % 12 === 0 ? 12 : hourOfDay % 12;
     label.textContent = `${hour12} ${period}`;
+    if (h >= 24) label.classList.add('next-day-label');
 
     const rule = document.createElement('span');
     rule.className = 'hour-rule';
@@ -293,6 +359,18 @@ function renderGaps(isoDate, onGapTap) {
   }
 }
 
+/* Scroll the page so the current time sits about a third of the way down.
+   A full day is roughly 1600px tall, so without this you open the app looking
+   at three in the morning. Only meaningful on today. */
+export function scrollToNow(isoDate) {
+  if (isoDate !== toISODate(new Date())) return;
+
+  const y = el.timeline.getBoundingClientRect().top + window.scrollY
+            + yFor(nowMinutes()) - window.innerHeight * 0.33;
+
+  window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+}
+
 /* ------------------------------------------------------------
    2. The per-second update
    ------------------------------------------------------------ */
@@ -302,7 +380,7 @@ export function tick(isoDate) {
   const mins = nowMinutes();
   const isToday = isoDate === toISODate(now);
 
-  win = windowForDate(isoDate);
+  win = windowForDate();
   const dayStart = win.start;
   const dayEnd = win.end;
 

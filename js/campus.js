@@ -62,8 +62,22 @@ export function walkMinutes(metres) {
   return Math.max(1, Math.round((metres * 1.25) / (1.35 * 60)));
 }
 
+/* Distances are shown in feet and miles.
+ *
+ * Feet below a tenth of a mile, miles above it. A campus cafe 55 m away is
+ * "180 ft", which is useful — "0.03 mi" is not. Internally everything stays in
+ * metres, because that is what the distance maths and the router return; this
+ * is purely a display conversion. */
+const FEET_PER_METRE = 3.280839895;
+const METRES_PER_MILE = 1609.344;
+
 export function formatDistance(metres) {
-  return metres < 950 ? `${Math.round(metres)} m` : `${(metres / 1000).toFixed(1)} km`;
+  if (metres < METRES_PER_MILE / 10) {
+    // Rounded to 10 ft — false precision helps nobody at this scale.
+    return `${Math.round((metres * FEET_PER_METRE) / 10) * 10} ft`;
+  }
+  const miles = metres / METRES_PER_MILE;
+  return `${miles < 10 ? miles.toFixed(2) : miles.toFixed(1)} mi`;
 }
 
 /* ------------------------------------------------------------

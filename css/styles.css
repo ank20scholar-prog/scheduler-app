@@ -491,12 +491,22 @@ h1, h2, .card-title, .stage-status {
 
 .form { display: flex; flex-direction: column; gap: 10px; }
 .row { display: flex; gap: 10px; }
-.row > * { flex: 1; }
-.field { display: flex; flex-direction: column; gap: 4px; font-size: .74rem; color: var(--text-dim); }
+
+/* min-width: 0 is load-bearing, not decoration.
+   A flex item defaults to min-width:auto, which refuses to shrink below its
+   content's intrinsic width. Time inputs have a chunky intrinsic width on
+   Windows because of the built-in clock picker, so a two-up Starts/Ends pair
+   could not fit and the second field spilled out past the card edge. */
+.row > * { flex: 1; min-width: 0; }
+.field { display: flex; flex-direction: column; gap: 4px; font-size: .74rem; color: var(--text-dim); min-width: 0; }
+
+/* Inputs must be allowed to shrink too, or they re-introduce the overflow. */
+.row input { min-width: 0; width: 100%; }
 
 input[type="text"], input[type="date"], input[type="time"] {
   width: 100%;
   padding: 11px 12px;
+  min-width: 0;
   font-size: 16px;          /* 16px minimum or iOS zooms the page on focus */
   font-family: inherit;
   color: var(--text);
@@ -1255,3 +1265,34 @@ input::placeholder { color: var(--text-faint); }
 .leaflet-control-zoom a:first-child { border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
 .leaflet-control-zoom a:last-child  { border-radius: 0 0 var(--radius-sm) var(--radius-sm); border-top: none; }
 .leaflet-control-zoom a:hover { background: var(--accent-soft); color: var(--accent); }
+
+/* Date and time inputs carry a native picker glyph, so they need a little less
+   horizontal padding than text inputs to sit two-up without crowding. */
+input[type="date"], input[type="time"] { padding-inline: 9px; }
+
+/* ============================================================
+   Next-day continuation
+   ============================================================ */
+
+/* The line where the day rolls over past midnight. */
+.day-divider {
+  position: absolute;
+  left: 52px; right: 0;
+  height: 0;
+  border-top: 2px dashed var(--border);
+  z-index: 4;
+  pointer-events: none;
+}
+.day-divider span {
+  position: absolute; right: 0; top: -9px;
+  background: var(--bg);
+  padding: 0 8px;
+  font-size: .64rem; font-weight: 700;
+  letter-spacing: .07em; text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/* Blocks belonging to the next day sit back slightly, so it is clear you have
+   scrolled past midnight without them being hard to read. */
+.block.is-next-day { opacity: .88; }
+.hour-label.next-day-label { color: var(--text-faint); opacity: .75; }

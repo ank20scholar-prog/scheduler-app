@@ -388,25 +388,40 @@ export function entriesForDate(isoDate) {
     .sort((a, b) => toMinutes(a.start) - toMinutes(b.start));
 }
 
-/* The visible time range for a date.
+/* The visible time range for a date: always the whole day, midnight to
+ * midnight.
  *
- * Starts from the configured day window, then stretches to fit anything that
- * falls outside it — otherwise a 1:15 AM bedtime would be computed, placed,
- * and then be invisible because the window starts at 08:00. Rounded out to
- * whole hours so the hour grid stays tidy. */
-export function windowForDate(isoDate) {
-  let start = toMinutes(state.settings.dayStart);
-  let end = toMinutes(state.settings.dayEnd);
+ * This used to be a configurable window that stretched to fit outliers. That
+ * cut the night in half — going to bed at 2:45 AM meant the sleep block was
+ * filed under the following calendar day, so from the evening you were looking
+ * at, it simply did not exist. A day is 24 hours; the timeline now shows 24
+ * hours, and the continuation below handles the part of the night that spills
+ * over the boundary. */
+export function windowForDate() {
+  return { start: 0, end: 1440 };
+}
 
-  for (const entry of entriesForDate(isoDate)) {
-    start = Math.min(start, toMinutes(entry.start));
-    end = Math.max(end, toMinutes(entry.end));
-  }
+/* How far past midnight to keep drawing, in minutes after 00:00 of the NEXT
+ * day.
+ *
+ * Your night does not stop at midnight, so neither does the timeline. Looking
+ * at Tuesday, you can scroll past 12 AM into Wednesday's small hours and see
+ * the sleep block you are about to start — the same night, drawn continuously.
+ *
+ * It runs to the end of the next morning's sleep, so the whole night is
+ * visible, capped at 12 hours so a day with nothing scheduled does not produce
+ * an endless scroll. */
+export function continuationForDate(isoDate) {
+  const nextDay = addDays(isoDate, 1);
+  const entries = entriesForDate(nextDay);
 
-  return {
-    start: Math.floor(start / 60) * 60,
-    end: Math.min(1440, Math.ceil(end / 60) * 60)
-  };
+  // The sleep that ends on the following morning.
+  const sleep = entries.find((e) => e.auto === 'sleep' && toMinutes(e.start) < 720);
+  if (sleep) return Math.min(720, toMinutes(sleep.end));
+
+  // Nothing sleep-shaped: show a few hours so the boundary is not abrupt.
+  const earliest = entries.length ? toMinutes(entries[0].start) : 0;
+  return Math.min(720, Math.max(180, earliest + 60));
 }
 
 /* Finds the stretches of empty time between entries, within the day window.
@@ -415,7 +430,7 @@ export function windowForDate(isoDate) {
    drawing or filling. */
 export function gapsForDate(isoDate, minGap = 20) {
   const entries = entriesForDate(isoDate);
-  const { start: dayStart, end: dayEnd } = windowForDate(isoDate);
+  const { start: dayStart, end: dayEnd } = windowForDate();
 
   const gaps = [];
   let cursor = dayStart;

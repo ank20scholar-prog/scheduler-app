@@ -10,7 +10,7 @@ import {
   toISODate, fromISODate, addDays, fmt12, toMinutes, toHHMM,
   entriesForDate, autoEntriesForDate, encodeForTransfer, decodeTransfer
 } from './store.js';
-import { renderDay, tick } from './timeline.js';
+import { renderDay, tick, scrollToNow } from './timeline.js';
 import { renderTasks } from './tasks.js';
 import { rankTasks } from './priority.js';
 import { showMap, refreshMap, initMapModule } from './map.js';
@@ -131,6 +131,7 @@ $('#next-day').addEventListener('click', () => changeDay(1));
 $('.header-center').addEventListener('click', () => {
   selectedDate = toISODate(new Date());
   refresh();
+  setTimeout(() => scrollToNow(selectedDate), 60);
   toast('Back to today');
 });
 
@@ -429,31 +430,6 @@ function renderSleepSummary() {
     : 'Nothing scheduled that day, so no sleep block is generated.';
 }
 
-function wireDayWindow() {
-  const startInput = $('#day-start-input');
-  const endInput = $('#day-end-input');
-
-  startInput.value = state.settings.dayStart;
-  endInput.value = state.settings.dayEnd;
-
-  const apply = () => {
-    // Refuse a window that would invert the timeline.
-    if (toMinutes(endInput.value) <= toMinutes(startInput.value)) {
-      toast('End must be after the start');
-      startInput.value = state.settings.dayStart;
-      endInput.value = state.settings.dayEnd;
-      return;
-    }
-    state.settings.dayStart = startInput.value;
-    state.settings.dayEnd = endInput.value;
-    save();
-    refresh();
-  };
-
-  startInput.addEventListener('change', apply);
-  endInput.addEventListener('change', apply);
-}
-
 // ============================================================
 // Backup: export / import
 // ============================================================
@@ -530,7 +506,6 @@ function applyBackupText(text) {
 
   applyState(clean);
   save();
-  wireDayWindow();
   refresh();
   toast(`Restored ${kept} ${kept === 1 ? 'entry' : 'entries'}`);
   return true;
@@ -784,7 +759,6 @@ async function init() {
 
   buildSwatches($('#class-swatches'), (c) => { draftClassColor = c; }, draftClassColor);
   buildSwatches($('#gap-swatches'), (c) => { draftGapColor = c; }, draftGapColor);
-  wireDayWindow();
   wireAutoSleep();
   wireNotifications();
   initMapModule();
@@ -796,6 +770,8 @@ async function init() {
   $('#task-time').value = toHHMM(soon.getHours() * 60);
 
   refresh();
+  // Let layout settle before measuring where "now" is.
+  setTimeout(() => scrollToNow(selectedDate), 120);
   if (fromLink) toast('Schedule loaded from your link');
   else if (seeded) toast('Your schedule is loaded');
 

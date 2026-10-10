@@ -736,6 +736,15 @@
    "indoor": false
   },
   {
+   "name": "The Greene Turtle",
+   "kind": "restaurant",
+   "lat": 38.980856,
+   "lon": -76.938988,
+   "hours": null,
+   "cuisine": null,
+   "indoor": false
+  },
+  {
    "name": "The Hall CP",
    "kind": "restaurant",
    "lat": 38.986095,
